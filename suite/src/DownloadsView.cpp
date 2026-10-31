@@ -49,7 +49,7 @@ DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
     title->setTextFormat(Qt::PlainText);
     title->setObjectName(QStringLiteral("SectionTitle"));
     layout->addWidget(title);
-    m_status = new QLabel(QStringLiteral("Na fila…"), this);
+    m_status = new QLabel(QStringLiteral("Queued…"), this);
     m_status->setWordWrap(true);
     m_status->setTextFormat(Qt::PlainText);
     m_status->setProperty("muted", true);
@@ -59,12 +59,12 @@ DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
     m_progress->setValue(0);
     layout->addWidget(m_progress);
     auto* actions = new QHBoxLayout;
-    m_cancel = new QPushButton(QStringLiteral("Cancelar"), this);
-    m_retry = new QPushButton(QStringLiteral("Tentar novamente"), this);
-    m_open = new QPushButton(QStringLiteral("Abrir"), this);
-    m_folder = new QPushButton(QStringLiteral("Ver na pasta"), this);
-    m_import = new QPushButton(QStringLiteral("Adicionar à biblioteca"), this);
-    m_convert = new QPushButton(QStringLiteral("Converter"), this);
+    m_cancel = new QPushButton(QStringLiteral("Cancel"), this);
+    m_retry = new QPushButton(QStringLiteral("Retry"), this);
+    m_open = new QPushButton(QStringLiteral("Open"), this);
+    m_folder = new QPushButton(QStringLiteral("Show in folder"), this);
+    m_import = new QPushButton(QStringLiteral("Add to library"), this);
+    m_convert = new QPushButton(QStringLiteral("Convert"), this);
     for (auto* button : {m_cancel, m_retry, m_open, m_folder, m_import, m_convert}) {
         actions->addWidget(button);
         button->setVisible(button == m_cancel);
@@ -74,7 +74,7 @@ DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
     connect(m_cancel, &QPushButton::clicked, this, &DownloadCard::cancel);
     connect(m_retry, &QPushButton::clicked, this, [this] {
         m_state = QStringLiteral("queued");
-        m_status->setText(QStringLiteral("Na fila…"));
+        m_status->setText(QStringLiteral("Queued…"));
         m_retry->hide();
         m_cancel->show();
         m_progress->setRange(0, 100);
@@ -94,7 +94,7 @@ DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
     connect(&m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
         if (error != QProcess::FailedToStart) return;
         m_state = QStringLiteral("error");
-        m_status->setText(QStringLiteral("Não foi possível iniciar o mecanismo de downloads: %1").arg(m_process.errorString()));
+        m_status->setText(QStringLiteral("Could not start the download engine: %1").arg(m_process.errorString()));
         m_cancel->hide();
         m_retry->show();
         emit stateChanged();
@@ -103,7 +103,7 @@ DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
         OnReadyReadCallback();
         if (m_state == QStringLiteral("running")) {
             m_state = QStringLiteral("error");
-            m_status->setText(QStringLiteral("O mecanismo de downloads parou. %1").arg(QString::fromUtf8(m_process.readAllStandardError()).right(1200)));
+            m_status->setText(QStringLiteral("The download engine stopped. %1").arg(QString::fromUtf8(m_process.readAllStandardError()).right(1200)));
         }
         m_cancel->hide();
         m_retry->setVisible(m_state != QStringLiteral("done"));
@@ -134,7 +134,7 @@ void DownloadCard::start()
 {
     m_state = QStringLiteral("running");
     m_buffer.clear();
-    m_status->setText(QStringLiteral("Conectando…"));
+    m_status->setText(QStringLiteral("Connecting…"));
     startDownloadWorker(m_process);
 }
 
@@ -142,7 +142,7 @@ void DownloadCard::cancel()
 {
     if (!active()) return;
     m_state = QStringLiteral("cancelled");
-    m_status->setText(QStringLiteral("Cancelado"));
+    m_status->setText(QStringLiteral("Cancelled"));
     m_cancel->hide();
     m_retry->setVisible(m_process.state() == QProcess::NotRunning);
     if (m_process.state() != QProcess::NotRunning) {
@@ -196,18 +196,18 @@ DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
     auto* layout = new QVBoxLayout(body);
     layout->setContentsMargins(32, 28, 32, 28);
     layout->setSpacing(18);
-    auto* heading = new QLabel(QStringLiteral("Baixar vídeos"), body);
+    auto* heading = new QLabel(QStringLiteral("Download videos"), body);
     heading->setObjectName(QStringLiteral("PageTitle"));
     layout->addWidget(heading);
-    auto* subtitle = new QLabel(QStringLiteral("Do link à sua biblioteca. Baixe, converta e assista em um só lugar."), body);
+    auto* subtitle = new QLabel(QStringLiteral("From link to library. Download, convert, and watch in one place."), body);
     subtitle->setProperty("muted", true);
     layout->addWidget(subtitle);
     auto* link = new QHBoxLayout;
     m_url = new QLineEdit(body);
     m_url->setObjectName(QStringLiteral("downloadUrl"));
-    m_url->setPlaceholderText(QStringLiteral("Cole um link: YouTube, Google Drive, outros sites ou arquivo de vídeo direto"));
-    auto* paste = new QPushButton(QStringLiteral("Colar"), body);
-    m_search = new QPushButton(QStringLiteral("Buscar"), body);
+    m_url->setPlaceholderText(QStringLiteral("Paste a link: YouTube, Google Drive, another website, or a direct video file"));
+    auto* paste = new QPushButton(QStringLiteral("Paste"), body);
+    m_search = new QPushButton(QStringLiteral("Look up"), body);
     m_search->setObjectName(QStringLiteral("searchDownload"));
     m_search->setProperty("variant", QStringLiteral("primary"));
     link->addWidget(m_url, 1);
@@ -224,11 +224,11 @@ DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
     m_thumbnail->setPixmap(lf::ui::Theme::iconPixmap(lf::ui::Icon::Movie, lf::ui::Colors::accent, 60));
     previewLayout->addWidget(m_thumbnail);
     auto* description = new QVBoxLayout;
-    m_title = new QLabel(QStringLiteral("Seus próximos vídeos começam aqui"), preview);
+    m_title = new QLabel(QStringLiteral("Your next videos start here"), preview);
     m_title->setObjectName(QStringLiteral("SectionTitle"));
     m_title->setTextFormat(Qt::PlainText);
     m_title->setWordWrap(true);
-    m_details = new QLabel(QStringLiteral("Busque um link para ver a prévia e as qualidades disponíveis."), preview);
+    m_details = new QLabel(QStringLiteral("Look up a link to preview the video and available quality options."), preview);
     m_details->setProperty("muted", true);
     m_details->setTextFormat(Qt::PlainText);
     m_details->setWordWrap(true);
@@ -239,11 +239,11 @@ DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
     layout->addWidget(preview);
     auto* options = new QHBoxLayout;
     m_format = new QComboBox(body);
-    m_format->addItems({QStringLiteral("Vídeo · melhor disponível"), QStringLiteral("Áudio · MP3")});
+    m_format->addItems({QStringLiteral("Video · best available"), QStringLiteral("Audio · MP3")});
     m_format->setCurrentIndex(m_settings.value(QStringLiteral("suite/format"), 0).toInt());
     m_quality = new QComboBox(body);
-    m_quality->addItem(QStringLiteral("Melhor qualidade"), 0);
-    m_playlist = new QCheckBox(QStringLiteral("Baixar a playlist inteira"), body);
+    m_quality->addItem(QStringLiteral("Best quality"), 0);
+    m_playlist = new QCheckBox(QStringLiteral("Download the entire playlist"), body);
     options->addWidget(m_format);
     options->addWidget(m_quality);
     options->addWidget(m_playlist);
@@ -252,28 +252,28 @@ DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
     auto* destination = new QHBoxLayout;
     m_directory = new QLineEdit(m_settings.value(QStringLiteral("out_dir"), QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)).toString(), body);
     m_directory->setObjectName(QStringLiteral("downloadDirectory"));
-    auto* browse = new QPushButton(QStringLiteral("Escolher pasta"), body);
-    destination->addWidget(new QLabel(QStringLiteral("Salvar em"), body));
+    auto* browse = new QPushButton(QStringLiteral("Choose folder"), body);
+    destination->addWidget(new QLabel(QStringLiteral("Save to"), body));
     destination->addWidget(m_directory, 1);
     destination->addWidget(browse);
     layout->addLayout(destination);
     auto* access = new QHBoxLayout;
     m_cookies = new QLineEdit(body);
     m_cookies->setObjectName(QStringLiteral("downloadCookies"));
-    m_cookies->setPlaceholderText(QStringLiteral("Opcional: cookies.txt para conteúdos que exigem login"));
-    auto* chooseCookies = new QPushButton(QStringLiteral("Escolher cookies"), body);
+    m_cookies->setPlaceholderText(QStringLiteral("Optional: cookies.txt for content that requires sign-in"));
+    auto* chooseCookies = new QPushButton(QStringLiteral("Choose cookies"), body);
     access->addWidget(m_cookies, 1);
     access->addWidget(chooseCookies);
     layout->addLayout(access);
     connect(chooseCookies, &QPushButton::clicked, this, [this] {
-        const QString path = QFileDialog::getOpenFileName(this, QStringLiteral("Cookies de uma conta com acesso ao conteúdo"), {}, QStringLiteral("Cookies Netscape (*.txt);;Todos os arquivos (*)"));
+        const QString path = QFileDialog::getOpenFileName(this, QStringLiteral("Cookies from an account with access to the content"), {}, QStringLiteral("Netscape cookies (*.txt);;All files (*)"));
         if (!path.isEmpty()) m_cookies->setText(path);
     });
     auto* downloadRow = new QHBoxLayout;
-    m_autoImport = new QCheckBox(QStringLiteral("Adicionar vídeos à biblioteca ao concluir"), body);
+    m_autoImport = new QCheckBox(QStringLiteral("Add videos to the library when finished"), body);
     m_autoImport->setObjectName(QStringLiteral("autoImportDownload"));
     m_autoImport->setChecked(m_settings.value(QStringLiteral("suite/autoImport"), true).toBool());
-    m_download = new QPushButton(QStringLiteral("Baixar"), body);
+    m_download = new QPushButton(QStringLiteral("Download"), body);
     m_download->setObjectName(QStringLiteral("startDownload"));
     m_download->setProperty("variant", QStringLiteral("primary"));
     m_download->setEnabled(false);
@@ -289,7 +289,7 @@ DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
     auto* queueHeader = new QHBoxLayout;
     m_count = new QLabel(QStringLiteral("Downloads"), body);
     m_count->setObjectName(QStringLiteral("SectionTitle"));
-    auto* clear = new QPushButton(QStringLiteral("Limpar concluídos"), body);
+    auto* clear = new QPushButton(QStringLiteral("Clear finished"), body);
     queueHeader->addWidget(m_count);
     queueHeader->addStretch();
     queueHeader->addWidget(clear);
@@ -302,7 +302,7 @@ DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
     outer->addWidget(scroll);
     connect(paste, &QPushButton::clicked, this, [this] { m_url->setText(QGuiApplication::clipboard()->text().trimmed()); });
     connect(browse, &QPushButton::clicked, this, [this] {
-        const QString path = QFileDialog::getExistingDirectory(this, QStringLiteral("Pasta de downloads"), m_directory->text());
+        const QString path = QFileDialog::getExistingDirectory(this, QStringLiteral("Download folder"), m_directory->text());
         if (!path.isEmpty()) m_directory->setText(path);
     });
     connect(m_format, &QComboBox::currentIndexChanged, this, [this](int index) { m_quality->setEnabled(index == 0); });
@@ -326,14 +326,14 @@ DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
     connect(&m_probe, &QProcess::finished, this, [this](int code) {
         OnInfoReadyReadCallback();
         m_search->setEnabled(true);
-        if (code != 0 && m_searchedUrl.isEmpty() && m_message->text() == QStringLiteral("Buscando vídeo…"))
-            m_message->setText(QStringLiteral("Falha ao buscar. %1").arg(QString::fromUtf8(m_probe.readAllStandardError()).right(1000)));
+        if (code != 0 && m_searchedUrl.isEmpty() && m_message->text() == QStringLiteral("Looking up video…"))
+            m_message->setText(QStringLiteral("Lookup failed. %1").arg(QString::fromUtf8(m_probe.readAllStandardError()).right(1000)));
     });
     connect(&m_probe, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
         if (error != QProcess::FailedToStart) return;
         m_search->setEnabled(true);
         m_url->setReadOnly(false);
-        m_message->setText(QStringLiteral("Não foi possível iniciar o mecanismo de downloads: %1").arg(m_probe.errorString()));
+        m_message->setText(QStringLiteral("Could not start the download engine: %1").arg(m_probe.errorString()));
     });
 }
 
@@ -366,11 +366,11 @@ void DownloadsView::OnSearchCallback()
     const QUrl url(m_url->text().trimmed());
     if (!url.isValid() || url.host().isEmpty() ||
         (url.scheme() != QStringLiteral("https") && url.scheme() != QStringLiteral("http"))) {
-        m_message->setText(QStringLiteral("Cole um link válido começando com https:// ou http://."));
+        m_message->setText(QStringLiteral("Paste a valid link starting with https:// or http://."));
         return;
     }
     if (!m_cookies->text().trimmed().isEmpty() && !QFileInfo(m_cookies->text().trimmed()).isFile()) {
-        m_message->setText(QStringLiteral("O arquivo de cookies não foi encontrado."));
+        m_message->setText(QStringLiteral("The cookies file was not found."));
         return;
     }
     m_probeBuffer.clear();
@@ -378,7 +378,7 @@ void DownloadsView::OnSearchCallback()
     m_download->setEnabled(false);
     m_search->setEnabled(false);
     m_url->setReadOnly(true);
-    m_message->setText(QStringLiteral("Buscando vídeo…"));
+    m_message->setText(QStringLiteral("Looking up video…"));
     connect(&m_probe, &QProcess::finished, m_url, [this] { m_url->setReadOnly(false); }, Qt::SingleShotConnection);
     startDownloadWorker(m_probe);
 }
@@ -406,10 +406,10 @@ void DownloadsView::OnInfoReadyReadCallback()
         m_playlist->setChecked(playlist);
         m_playlist->setEnabled(!playlist);
         if (playlist) details.append(event.value(QStringLiteral("count")).toInt() > 0
-            ? QStringLiteral("%1 itens").arg(event.value(QStringLiteral("count")).toInt()) : QStringLiteral("Playlist / pasta"));
+            ? QStringLiteral("%1 items").arg(event.value(QStringLiteral("count")).toInt()) : QStringLiteral("Playlist / folder"));
         m_details->setText(details.join(QStringLiteral(" · ")));
         m_quality->clear();
-        m_quality->addItem(QStringLiteral("Melhor qualidade"), 0);
+        m_quality->addItem(QStringLiteral("Best quality"), 0);
         for (const auto height : event.value(QStringLiteral("heights")).toArray())
             m_quality->addItem(QStringLiteral("%1p").arg(height.toInt()), height.toInt());
         const int saved = m_quality->findData(m_settings.value(QStringLiteral("suite/height"), 0).toInt());
@@ -436,7 +436,7 @@ void DownloadsView::OnDownloadCallback()
     if (m_searchedUrl.isEmpty() || m_url->text().trimmed() != m_searchedUrl) return;
     const QString directory = m_directory->text().trimmed();
     if (directory.isEmpty() || !QDir::isAbsolutePath(directory) || !QDir().mkpath(directory)) {
-        m_message->setText(QStringLiteral("Escolha uma pasta válida para salvar."));
+        m_message->setText(QStringLiteral("Choose a valid download folder."));
         return;
     }
     m_settings.setValue(QStringLiteral("out_dir"), directory);
@@ -471,5 +471,5 @@ void DownloadsView::OnQueueChangedCallback()
         card->start();
         ++running;
     }
-    m_count->setText(active ? QStringLiteral("Downloads · %1 em andamento").arg(active) : QStringLiteral("Downloads"));
+    m_count->setText(active ? QStringLiteral("Downloads · %1 active").arg(active) : QStringLiteral("Downloads"));
 }

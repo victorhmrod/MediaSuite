@@ -162,10 +162,10 @@ void MainWindow::buildUi() {
     auto *content = new QWidget(central);
     auto *contentLayout = new QVBoxLayout(content);
     contentLayout->setContentsMargins(32, 28, 32, 20);
-    auto* heading = new QLabel(QStringLiteral("Converter e editar"), content);
+    auto* heading = new QLabel(QStringLiteral("Convert and edit"), content);
     heading->setObjectName(QStringLiteral("PageTitle"));
     contentLayout->addWidget(heading);
-    auto* subtitle = new QLabel(QStringLiteral("Vídeos, áudio, imagens, PDFs e documentos. Suas ferramentas em um só lugar."), content);
+    auto* subtitle = new QLabel(QStringLiteral("Video, audio, images, PDFs, and documents. All your tools in one place."), content);
     subtitle->setProperty("muted", true);
     contentLayout->addWidget(subtitle);
     contentLayout->setSpacing(12);
@@ -178,7 +178,7 @@ void MainWindow::buildUi() {
     m_dropZoneButton->setFlat(true);
     m_dropZoneButton->setMinimumHeight(140);
     m_dropZoneButton->setCursor(Qt::PointingHandCursor);
-    m_dropZoneButton->setText(QStringLiteral("Arraste arquivos aqui ou clique para escolher"));
+    m_dropZoneButton->setText(QStringLiteral("Drag files here or click to browse"));
     connect(m_dropZoneButton, &QPushButton::clicked, this, [this]() {
         const QStringList paths = QFileDialog::getOpenFileNames(
             this, QStringLiteral("Select files"), QString(), fileDialogFilterForCategory(m_activeCategory));
@@ -189,7 +189,7 @@ void MainWindow::buildUi() {
 
     auto *dropRow = new QHBoxLayout();
     dropRow->addWidget(m_dropZoneButton, 1);
-    auto *addFolderButton = new QPushButton(QStringLiteral("Adicionar pasta"), content);
+    auto *addFolderButton = new QPushButton(QStringLiteral("Add folder"), content);
     addFolderButton->setFixedWidth(120);
     connect(addFolderButton, &QPushButton::clicked, this, &MainWindow::addInputFolder);
     dropRow->addWidget(addFolderButton);
@@ -197,12 +197,12 @@ void MainWindow::buildUi() {
 
     // --- Queue filter & sort -------------------------------------------------
     auto *filterSortRow = new QHBoxLayout();
-    filterSortRow->addWidget(new QLabel(QStringLiteral("Filtrar:"), content));
+    filterSortRow->addWidget(new QLabel(QStringLiteral("Filter:"), content));
     m_filterCombo = new QComboBox(content);
     auto addFilterItem = [this](const QString &label, FormatCategory category) {
         m_filterCombo->addItem(label, static_cast<int>(category));
     };
-    addFilterItem(QStringLiteral("Todas as categorias"), FormatCategory::Unknown);
+    addFilterItem(QStringLiteral("All categories"), FormatCategory::Unknown);
     addFilterItem(QStringLiteral("🎬  Video"), FormatCategory::Video);
     addFilterItem(QStringLiteral("🎵  Audio"), FormatCategory::Audio);
     addFilterItem(QStringLiteral("🖼  Images"), FormatCategory::Image);
@@ -215,13 +215,13 @@ void MainWindow::buildUi() {
     filterSortRow->addWidget(m_filterCombo);
 
     filterSortRow->addSpacing(16);
-    filterSortRow->addWidget(new QLabel(QStringLiteral("Ordenar:"), content));
+    filterSortRow->addWidget(new QLabel(QStringLiteral("Sort by:"), content));
     m_sortCombo = new QComboBox(content);
-    m_sortCombo->addItem(QStringLiteral("Ordem de adição"), static_cast<int>(QueueSortKey::InsertOrder));
-    m_sortCombo->addItem(QStringLiteral("Nome (A–Z)"), static_cast<int>(QueueSortKey::NameAsc));
-    m_sortCombo->addItem(QStringLiteral("Nome (Z–A)"), static_cast<int>(QueueSortKey::NameDesc));
+    m_sortCombo->addItem(QStringLiteral("Order added"), static_cast<int>(QueueSortKey::InsertOrder));
+    m_sortCombo->addItem(QStringLiteral("Name (A–Z)"), static_cast<int>(QueueSortKey::NameAsc));
+    m_sortCombo->addItem(QStringLiteral("Name (Z–A)"), static_cast<int>(QueueSortKey::NameDesc));
     m_sortCombo->addItem(QStringLiteral("Status"), static_cast<int>(QueueSortKey::Status));
-    m_sortCombo->addItem(QStringLiteral("Formato de saída"), static_cast<int>(QueueSortKey::Format));
+    m_sortCombo->addItem(QStringLiteral("Output format"), static_cast<int>(QueueSortKey::Format));
     connect(m_sortCombo, qOverload<int>(&QComboBox::currentIndexChanged), this,
             [this](int) { applyQueueSort(); });
     filterSortRow->addWidget(m_sortCombo);
@@ -230,7 +230,7 @@ void MainWindow::buildUi() {
 
     // --- Queue table -------------------------------------------------------
     m_queueTable = new QTableWidget(0, 5, content);
-    m_queueTable->setHorizontalHeaderLabels({"Arquivo", "Destino", "Status", "Progresso", "Restante"});
+    m_queueTable->setHorizontalHeaderLabels({"File", "Target", "Status", "Progress", "Time left"});
     m_queueTable->horizontalHeader()->setSectionResizeMode(ColumnFile, QHeaderView::Stretch);
     m_queueTable->verticalHeader()->setVisible(false);
     m_queueTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -247,16 +247,16 @@ void MainWindow::buildUi() {
 
     // --- Queue controls -----------------------------------------------------
     auto *controlsRow = new QHBoxLayout();
-    m_startButton = new QPushButton(QStringLiteral("Iniciar fila"), content);
+    m_startButton = new QPushButton(QStringLiteral("Start queue"), content);
     connect(m_startButton, &QPushButton::clicked, this, [this]() { m_jobManager->startQueue(); });
     controlsRow->addWidget(m_startButton);
 
-    auto *pauseButton = new QPushButton(QStringLiteral("Pausar"), content);
+    auto *pauseButton = new QPushButton(QStringLiteral("Pause"), content);
     connect(pauseButton, &QPushButton::clicked, this, [this]() { m_jobManager->pauseQueue(); });
     controlsRow->addWidget(pauseButton);
 
     controlsRow->addSpacing(12);
-    controlsRow->addWidget(new QLabel(QStringLiteral("Simultâneos:"), content));
+    controlsRow->addWidget(new QLabel(QStringLiteral("Concurrent jobs:"), content));
     m_concurrencySpin = new QSpinBox(content);
     m_concurrencySpin->setRange(1, 16);
     m_concurrencySpin->setValue(2);
@@ -265,7 +265,7 @@ void MainWindow::buildUi() {
     controlsRow->addWidget(m_concurrencySpin);
 
     controlsRow->addSpacing(12);
-    controlsRow->addWidget(new QLabel(QStringLiteral("Processamento:"), content));
+    controlsRow->addWidget(new QLabel(QStringLiteral("Hardware:"), content));
     m_hardwareCombo = new QComboBox(content);
     m_hardwareCombo->addItem(QStringLiteral("Auto"), hardwareVendorToString(HardwareVendor::Auto));
     m_hardwareCombo->addItem(QStringLiteral("CPU"), hardwareVendorToString(HardwareVendor::Cpu));
@@ -284,22 +284,22 @@ void MainWindow::buildUi() {
     controlsRow->addStretch();
     contentLayout->addLayout(controlsRow);
     auto* editorRow = new QHBoxLayout;
-    auto *watchFoldersButton = new QPushButton(QStringLiteral("Pastas monitoradas"), content);
+    auto *watchFoldersButton = new QPushButton(QStringLiteral("Watch folders"), content);
     connect(watchFoldersButton, &QPushButton::clicked, this, &MainWindow::openWatchFoldersDialog);
     editorRow->addWidget(watchFoldersButton);
 
-    auto *presetsButton = new QPushButton(QStringLiteral("Predefinições"), content);
+    auto *presetsButton = new QPushButton(QStringLiteral("Presets"), content);
     connect(presetsButton, &QPushButton::clicked, this, &MainWindow::openPresetManagerDialog);
     editorRow->addWidget(presetsButton);
 
-    auto *videoEditorButton = new QPushButton(QStringLiteral("Editor de vídeo"), content);
+    auto *videoEditorButton = new QPushButton(QStringLiteral("Video editor"), content);
     connect(videoEditorButton, &QPushButton::clicked, this, &MainWindow::openVideoEditorDialog);
     editorRow->addWidget(videoEditorButton);
-    auto* extraEditors = new QMenu(QStringLiteral("Mais editores"), content);
+    auto* extraEditors = new QMenu(QStringLiteral("More editors"), content);
 
     auto *audioEditorButton = new QPushButton(QStringLiteral("Audio Editor..."), content);
     connect(audioEditorButton, &QPushButton::clicked, this, &MainWindow::openAudioEditorDialog);
-    extraEditors->addAction(QStringLiteral("Áudio"), audioEditorButton, &QPushButton::click);
+    extraEditors->addAction(QStringLiteral("Audio"), audioEditorButton, &QPushButton::click);
     audioEditorButton->hide();
 
     auto *imageEditorButton = new QPushButton(QStringLiteral("Image Editor..."), content);
@@ -309,7 +309,7 @@ void MainWindow::buildUi() {
             openImageEditorDialog(path);
         }
     });
-    extraEditors->addAction(QStringLiteral("Imagem"), imageEditorButton, &QPushButton::click);
+    extraEditors->addAction(QStringLiteral("Image"), imageEditorButton, &QPushButton::click);
     imageEditorButton->hide();
 
     auto *documentEditorButton = new QPushButton(QStringLiteral("Document Editor..."), content);
@@ -330,10 +330,10 @@ void MainWindow::buildUi() {
             openModel3DEditorDialog(path);
         }
     });
-    extraEditors->addAction(QStringLiteral("Modelo 3D"), model3dEditorButton, &QPushButton::click);
+    extraEditors->addAction(QStringLiteral("3D model"), model3dEditorButton, &QPushButton::click);
     model3dEditorButton->hide();
 
-    auto* editorsButton = new QPushButton(QStringLiteral("Mais editores"), content);
+    auto* editorsButton = new QPushButton(QStringLiteral("More editors"), content);
     editorsButton->setMenu(extraEditors);
     editorRow->addWidget(editorsButton);
     editorRow->addStretch(1);
@@ -953,7 +953,7 @@ void MainWindow::showQueueContextMenu(const QPoint &pos) {
         });
     }
     if (status == JobStatus::Queued) {
-        menu.addAction(QStringLiteral("Pausar"), this, [this, jobId]() { m_jobManager->pauseJob(jobId); });
+        menu.addAction(QStringLiteral("Pause"), this, [this, jobId]() { m_jobManager->pauseJob(jobId); });
     }
     if (status == JobStatus::Paused) {
         menu.addAction(QStringLiteral("Resume"), this, [this, jobId]() { m_jobManager->resumeJob(jobId); });
@@ -963,9 +963,9 @@ void MainWindow::showQueueContextMenu(const QPoint &pos) {
     }
     if (status == JobStatus::Completed && QFileInfo::exists(job->outputPath())) {
         const QString path = job->outputPath();
-        menu.addAction(QStringLiteral("Abrir arquivo"), this, [path] { QDesktopServices::openUrl(QUrl::fromLocalFile(path)); });
+        menu.addAction(QStringLiteral("Open file"), this, [path] { QDesktopServices::openUrl(QUrl::fromLocalFile(path)); });
         if (FormatRegistry::instance().categoryOf(QFileInfo(path).suffix()) == FormatCategory::Video)
-            menu.addAction(QStringLiteral("Adicionar à biblioteca"), this, [this, path] { emit importRequested(path); });
+            menu.addAction(QStringLiteral("Add to library"), this, [this, path] { emit importRequested(path); });
     }
     menu.addAction(QStringLiteral("Media Info..."), this, [this, jobId]() { showMediaInfo(jobId); });
     menu.addSeparator();

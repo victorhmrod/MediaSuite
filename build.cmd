@@ -1,4 +1,4 @@
 @echo off
-rem Gera o aplicativo unificado na pasta da versão em dist\.
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\package-suite.ps1" %*
+rem Build the unified application in its versioned folder under dist\.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\make-suite-release.ps1" %*
 exit /b %errorlevel%

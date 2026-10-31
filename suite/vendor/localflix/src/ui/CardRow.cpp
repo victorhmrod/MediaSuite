@@ -13,7 +13,7 @@ CardRow::CardRow(const QString& title, QWidget* parent) : QWidget(parent)
 {
     m_title = new QLabel(title, this);
     m_title->setObjectName(QStringLiteral("SectionTitle"));
-    m_seeAll = new QPushButton(QStringLiteral("Ver todos"), this);
+    m_seeAll = new QPushButton(QStringLiteral("See all"), this);
     m_seeAll->setProperty("variant", QStringLiteral("ghost"));
     m_seeAll->setCursor(Qt::PointingHandCursor);
     m_seeAll->hide();

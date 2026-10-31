@@ -80,7 +80,7 @@ private slots:
         downloads->findChild<QPushButton*>(QStringLiteral("searchDownload"))->click();
         auto* startDownload = downloads->findChild<QPushButton*>(QStringLiteral("startDownload"));
         QTRY_VERIFY_WITH_TIMEOUT(startDownload->isEnabled(), 45000);
-        downloads->findChild<QLineEdit*>(QStringLiteral("downloadDirectory"))->setText(temp.filePath(QStringLiteral("downloads com espaços")));
+        downloads->findChild<QLineEdit*>(QStringLiteral("downloadDirectory"))->setText(temp.filePath(QStringLiteral("downloads with spaces \u2603")));
         downloads->findChild<QCheckBox*>(QStringLiteral("autoImportDownload"))->setChecked(true);
         startDownload->click();
         auto* card = downloads->findChild<DownloadCard*>();
@@ -110,7 +110,7 @@ private slots:
             }
         });
         for (auto* button : tools->findChildren<QPushButton*>())
-            if (button->text() == QStringLiteral("Iniciar fila")) button->click();
+            if (button->text() == QStringLiteral("Start queue")) button->click();
         QTRY_COMPARE_WITH_TIMEOUT(table->item(0, 2)->text(), QStringLiteral("Completed"), 30000);
         const QString converted = QFileInfo(downloaded).dir().filePath(QStringLiteral("fixture.mkv"));
         QVERIFY(QFile::exists(converted));

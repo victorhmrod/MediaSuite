@@ -52,7 +52,7 @@ class WorkerTest(unittest.TestCase):
         executable = os.environ.get("MEDIA_SUITE_TEST_WORKER")
         command = [executable] if executable else [sys.executable, "-u", str(Path(__file__).parents[1] / "download_worker.py")]
         request = {"action": action, "url": f"http://127.0.0.1:{self.server.server_port}/{file}",
-                   "directory": str(self.root / ("áudio com espaços" if audio else "vídeo com espaços")),
+                   "directory": str(self.root / ("audio with spaces \u2603" if audio else "video with spaces \u2603")),
                    "audio": audio, "height": 0, "playlist": playlist, "cookies": str(cookies) if cookies else ""}
         result = subprocess.run(command, input=json.dumps(request) + "\n", capture_output=True, text=True, timeout=45)
         events = [json.loads(line) for line in result.stdout.splitlines() if line.startswith("{")]

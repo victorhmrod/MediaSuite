@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 if (-not $SkipBuild) {
     & "$PSScriptRoot\build-suite.cmd"
-    if ($LASTEXITCODE -ne 0) { throw 'Falha na compilação.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 }
 $qtDir = $env:LOCALFLIX_QT_DIR
 if (-not $qtDir) { $qtDir = 'D:\Qt\6.7.3\msvc2019_64' }
@@ -12,12 +12,12 @@ $output = Join-Path $repo "dist\MediaSuite-$version"
 New-Item -ItemType Directory -Force $output | Out-Null
 Copy-Item -LiteralPath "$repo\build\suite\MediaSuite.exe","$repo\build\suite\libmpv-2.dll" -Destination $output
 & "$qtDir\bin\windeployqt.exe" --release --no-translations --compiler-runtime "$output\MediaSuite.exe"
-if ($LASTEXITCODE -ne 0) { throw 'Falha ao incluir o Qt.' }
+if ($LASTEXITCODE -ne 0) { throw 'Qt deployment failed.' }
 python -m PyInstaller --noconfirm --clean --onedir --console --name download-worker `
     --collect-all yt_dlp --collect-all yt_dlp_ejs `
     --distpath "$repo\build\suite-worker-dist" --workpath "$repo\build\suite-worker" `
     --specpath "$repo\build" "$repo\suite\download_worker.py"
-if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar o mecanismo de downloads.' }
+if ($LASTEXITCODE -ne 0) { throw 'Download engine packaging failed.' }
 New-Item -ItemType Directory -Force "$output\worker" | Out-Null
 Copy-Item -Path "$repo\build\suite-worker-dist\download-worker\*" -Destination "$output\worker" -Recurse -Force
 foreach ($tool in @('ffmpeg.exe', 'ffprobe.exe')) {
@@ -34,4 +34,4 @@ Copy-Item -LiteralPath "$repo\suite\vendor\localflix\LICENSE" -Destination "$out
 Copy-Item -LiteralPath "$repo\suite\vendor\magnify\LICENSE" -Destination "$output\LICENSE-MagnifyFactory.txt"
 Copy-Item -LiteralPath "$repo\THIRD_PARTY_NOTICES.md","$repo\suite\README.md" -Destination $output
 Compress-Archive -LiteralPath $output -DestinationPath "$repo\dist\MediaSuite-$version-win64.zip" -Force
-Write-Host "Pronto: $output\MediaSuite.exe"
+Write-Host "Ready: $output\MediaSuite.exe"

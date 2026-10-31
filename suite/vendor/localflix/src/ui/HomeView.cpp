@@ -22,7 +22,7 @@ HomeView::HomeView(ApplicationController& app, LibraryActions* actions, QWidget*
     root->setContentsMargins(32, 28, 32, 32);
     root->setSpacing(26);
 
-    auto* title = new QLabel(QStringLiteral("Início"), content);
+    auto* title = new QLabel(QStringLiteral("Home"), content);
     title->setObjectName(QStringLiteral("PageTitle"));
     root->addWidget(title);
 
@@ -32,17 +32,17 @@ HomeView::HomeView(ApplicationController& app, LibraryActions* actions, QWidget*
     auto* wl = new QVBoxLayout(welcome);
     wl->setContentsMargins(36, 32, 36, 32);
     wl->setSpacing(10);
-    auto* wt = new QLabel(QStringLiteral("Bem-vindo ao Media Suite"), welcome);
+    auto* wt = new QLabel(QStringLiteral("Welcome to Media Suite"), welcome);
     wt->setObjectName(QStringLiteral("Heading"));
-    auto* wd = new QLabel(QStringLiteral("Baixe vídeos, transforme seus arquivos e organize sua biblioteca. "
-                                         "Seus vídeos ficam onde estão, e o player lembra onde você parou."),
+    auto* wd = new QLabel(QStringLiteral("Download videos, transform files, and organize your library. "
+                                         "Your videos stay where they are, and the player remembers where you stopped."),
                           welcome);
     wd->setWordWrap(true);
     wd->setProperty("muted", true);
-    auto* create = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("Criar série"), welcome);
+    auto* create = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("Create a show"), welcome);
     create->setProperty("variant", QStringLiteral("primary"));
-    auto* folder = new QPushButton(Theme::icon(Icon::Folder, Colors::text, 18), QStringLiteral("Importar pasta como série"), welcome);
-    auto* movies = new QPushButton(Theme::icon(Icon::Movie, Colors::text, 18), QStringLiteral("Adicionar vídeos"), welcome);
+    auto* folder = new QPushButton(Theme::icon(Icon::Folder, Colors::text, 18), QStringLiteral("Import folder as show"), welcome);
+    auto* movies = new QPushButton(Theme::icon(Icon::Movie, Colors::text, 18), QStringLiteral("Add videos"), welcome);
     auto* wb = new QHBoxLayout;
     wb->setSpacing(10);
     wb->addWidget(create);
@@ -64,16 +64,16 @@ HomeView::HomeView(ApplicationController& app, LibraryActions* actions, QWidget*
     auto* sl = new QVBoxLayout(m_sections);
     sl->setContentsMargins(0, 0, 0, 0);
     sl->setSpacing(26);
-    m_continue = new CardRow(QStringLiteral("Continuar assistindo"), m_sections);
-    m_recent = new CardRow(QStringLiteral("Adicionados recentemente"), m_sections);
-    m_shows = new CardRow(QStringLiteral("Séries"), m_sections);
-    m_movies = new CardRow(QStringLiteral("Filmes e vídeos"), m_sections);
+    m_continue = new CardRow(QStringLiteral("Continue watching"), m_sections);
+    m_recent = new CardRow(QStringLiteral("Recently added"), m_sections);
+    m_shows = new CardRow(QStringLiteral("TV shows"), m_sections);
+    m_movies = new CardRow(QStringLiteral("Movies and videos"), m_sections);
     m_continue->setSeeAllVisible(true);
     m_shows->setSeeAllVisible(true);
     m_movies->setSeeAllVisible(true);
-    m_continue->setEmptyText(QStringLiteral("Comece a assistir e continue de onde parou por aqui."));
-    m_shows->setEmptyText(QStringLiteral("Nenhuma série por aqui ainda."));
-    m_movies->setEmptyText(QStringLiteral("Nenhum vídeo por aqui ainda."));
+    m_continue->setEmptyText(QStringLiteral("Start watching and pick up where you left off here."));
+    m_shows->setEmptyText(QStringLiteral("No shows yet."));
+    m_movies->setEmptyText(QStringLiteral("No videos yet."));
     sl->addWidget(m_continue);
     sl->addWidget(m_recent);
     sl->addWidget(m_shows);

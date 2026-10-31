@@ -1,4 +1,4 @@
-"""Gera assets/icon.ico: quadrado arredondado no azul do LocalFlix com uma seta de download."""
+"""Generate assets/icon.ico: a rounded LocalFlix-blue square with a download arrow."""
 
 import os
 
@@ -11,7 +11,7 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
 def main():
     img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 
-    # fundo com gradiente vertical (#749ff3 -> #3f6fd8), recortado num quadrado arredondado
+    # Vertical gradient (#749ff3 -> #3f6fd8), clipped to a rounded square.
     grad = Image.new("RGBA", (SIZE, SIZE))
     top, bottom = (0x74, 0x9F, 0xF3), (0x3F, 0x6F, 0xD8)
     gd = ImageDraw.Draw(grad)
@@ -25,13 +25,13 @@ def main():
     d = ImageDraw.Draw(img)
     white = (255, 255, 255, 255)
     cx = SIZE // 2
-    d.rectangle([cx - 80, 230, cx + 80, 560], fill=white)  # haste
-    d.polygon([(cx - 230, 500), (cx + 230, 500), (cx, 760)], fill=white)  # ponta
+    d.rectangle([cx - 80, 230, cx + 80, 560], fill=white)  # shaft
+    d.polygon([(cx - 230, 500), (cx + 230, 500), (cx, 760)], fill=white)  # arrowhead
     d.rounded_rectangle([250, 800, SIZE - 250, 870], radius=35, fill=white)  # base
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     img.save(OUT, sizes=[(s, s) for s in (16, 24, 32, 48, 64, 128, 256)])
-    print("ícone:", OUT)
+    print("icon:", OUT)
 
 
 if __name__ == "__main__":

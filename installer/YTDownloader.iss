@@ -41,11 +41,9 @@ VersionInfoProductName=YT Downloader
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
 [CustomMessages]
 english.RemoveSettings=Also delete your YT Downloader settings (download folder, default format and quality)?%n%nDownloaded videos are never deleted.
-brazilianportuguese.RemoveSettings=Apagar também as configurações do YT Downloader (pasta de downloads, formato e qualidade padrão)?%n%nOs vídeos baixados nunca são apagados.
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

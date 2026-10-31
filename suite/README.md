@@ -1,97 +1,139 @@
-# Media Suite
+# Media Suite guide
 
-Aplicativo Windows que reúne YT Downloader, LocalFlix e MagnifyFactory em uma
-única janela Qt. Biblioteca e player mantêm o tema do LocalFlix; downloads,
-conversão e edição usam a mesma paleta, barra lateral e controles.
+Media Suite combines YT Downloader, LocalFlix, and MagnifyFactory in a single
+Windows application. All interface text, download messages, build instructions,
+and installer prompts are in English.
 
-- **Biblioteca:** séries, filmes, coleções, ordem manual, progresso, reprodução
-  automática, capítulos, pular abertura/encerramento e picture in picture.
-- **Baixar vídeos:** links do YouTube, Google Drive e demais sites compatíveis
-  com yt-dlp, arquivos de mídia diretos, vídeos incorporados em páginas e streams
-  HLS/DASH sem DRM. Prévia, vídeo no melhor formato disponível ou MP3, qualidades,
-  playlists/pastas, até três downloads simultâneos, cancelamento e nova tentativa.
-  A disponibilidade depende do site, das permissões e do suporte do extrator.
-- **Integração:** vídeos baixados podem entrar automaticamente na biblioteca;
-  cada download oferece acesso ao conversor. Na fila do conversor, o menu de
-  um vídeo concluído permite adicioná-lo à biblioteca.
-- **Converter e editar:** motores, predefinições, pastas monitoradas e editores
-  de vídeo, áudio, imagem, PDF e modelos 3D do MagnifyFactory.
+## Using the application
 
-## Executar
+Run the installed Start Menu shortcut, or extract the portable ZIP and open
+`MediaSuite.exe`. The installer supports per-user installation without
+administrator privileges and optional all-user installation. Uninstalling removes
+the application while keeping your library, preferences, and media files.
 
-Abra `MediaSuite.exe` na pasta distribuída. Não é necessário instalar Python
-ou Qt. FFmpeg e FFprobe são incluídos quando disponíveis ao empacotar.
-Node.js ou Deno no PATH habilitam os desafios JavaScript do YouTube.
-Cole um link HTTP/HTTPS e pressione **Buscar**. A origem é detectada
-automaticamente. Links de arquivos de vídeo do Drive (`file/d/…`, `open?id=…`
-e `uc?id=…`) usam o extrator GoogleDrive; pastas compartilhadas usam o suporte
-de playlists/pastas do yt-dlp. A prévia mostra a plataforma, duração e qualidades
-quando essas informações estão disponíveis. Um link de playlist/pasta é
-reconhecido automaticamente para baixar seus itens.
+The sidebar provides access to Home, Continue Watching, TV shows, Movies and
+videos, Collections, Settings, Download videos, and Convert and edit.
 
-Para conteúdo com login, selecione um arquivo de cookies no formato
-Netscape/Mozilla de uma conta com acesso, no campo opcional **Escolher cookies**.
-O mesmo arquivo é usado na busca e no download. O aplicativo não extrai cookies
-do navegador automaticamente. Arquivos privados exigem as permissões da conta;
-DRM, sites sem extrator compatível e bloqueios do servidor podem impedir o download.
-Consulte a [lista de fontes do yt-dlp](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
-PDFs, documentos, arquivos compactados e modelos 3D usam as mesmas ferramentas
-externas do MagnifyFactory (Poppler, QPDF, LibreOffice, 7-Zip e as ferramentas
-de modelos 3D exigidas pelo formato). Os diálogos avançados herdados mantêm
-alguns textos em inglês.
+### Download videos
 
-Os dados da nova biblioteca ficam em `%APPDATA%\MediaSuite`, separados da
-biblioteca antiga do LocalFlix. É possível importar novamente as mesmas pastas:
-os vídeos não são copiados, movidos nem apagados. As preferências de pasta do
-YT Downloader são reaproveitadas. `LOCALFLIX_DATA_DIR` permite escolher uma
-biblioteca existente; feche outros aplicativos que a utilizem antes de abrir.
+Paste an HTTP/HTTPS link and select **Look up**. The application detects the
+source, displays a preview when available, and lists the reported quality options.
+Choose video or MP3 audio, a destination folder, and **Download**.
 
-## Compilar
+Sources include YouTube, Google Drive, direct media files, videos embedded in
+websites, and non-DRM HLS/DASH streams supported by yt-dlp. Drive file links such
+as `file/d/...`, `open?id=...`, and `uc?id=...` use the GoogleDrive extractor.
+Playlists and shared folders are detected automatically when the source supports
+them. Compatibility depends on the website, extractor, and account permissions.
+See the [supported sources](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
 
-Requisitos: Windows x64, MSVC C++20, Ninja, CMake e Qt 6.7 ou mais recente
-(Widgets, Sql, Svg, OpenGLWidgets, Concurrent, Network e Test).
+For content that requires sign-in, use **Choose cookies** to select a
+Netscape/Mozilla-format cookies file from an account with access. The same file
+is used for lookup and download. Cookies are not extracted from browsers
+automatically. Private content requires permission; DRM and server restrictions
+can prevent downloading.
+
+Up to three downloads run at once. Each job supports cancellation, retry,
+opening the result, showing its folder, importing video into the library, and
+sending a file to the converter. Automatic library import is optional.
+
+### Library, playback, and tools
+
+Create shows, import movie files or folders, arrange episodes, and group items
+into collections. The player remembers progress and supports automatic next
+episodes, chapter-based opening/ending skips, and picture in picture.
+
+The converter retains MagnifyFactory engines, presets, watch folders, and video,
+audio, image, PDF, document, and 3D editors. Right-click a completed video job
+and select **Add to library** to import its output.
+
+## Dependencies
+
+Published packages bundle Qt, Python, yt-dlp, FFmpeg, FFprobe, and libmpv.
+Node.js or Deno on PATH enables JavaScript challenges used by some websites.
+PDF tools may require Poppler and QPDF; document conversion uses LibreOffice;
+archive tools use 7-Zip. Individual 3D formats may require additional converters.
+
+## Data and preferences
+
+The new library lives in `%APPDATA%\MediaSuite`, separate from LocalFlix.
+Importing existing media does not copy, move, or delete video files. Download
+folder preferences from YT Downloader are reused.
+
+`LOCALFLIX_DATA_DIR` selects another library folder. Close applications using
+that folder before opening it here. Tests use isolated library and download
+preferences. `MEDIA_SUITE_SETTINGS_ORGANIZATION` can isolate downloader settings.
+
+## Building
+
+Requirements: Windows x64, MSVC C++20, Ninja, CMake 3.24+, and Qt 6.7+ with
+Widgets, Sql, Svg, OpenGLWidgets, Concurrent, Network, and Test components.
 
 ```powershell
 git clone https://github.com/victorhmrod/MediaSuite.git
 cd MediaSuite
-# Baixa o libmpv e verifica seu SHA-256 (requer 7-Zip).
+python -m pip install 'yt-dlp[default]' pyinstaller
+# Requires 7-Zip; downloads libmpv and verifies its SHA-256.
 .\scripts\fetch-suite-deps.ps1
-# O padrão do kit é D:\Qt\6.7.3\msvc2019_64; altere se necessário.
 $env:LOCALFLIX_QT_DIR = 'D:\Qt\6.7.3\msvc2019_64'
 .\scripts\build-suite.cmd
 ```
 
-O CMake procura os headers e a DLL do libmpv em
-`third_party/libmpv`. Para outra localização, configure
-`-DLOCALFLIX_LIBMPV_DIR=C:/caminho/libmpv` no diretório `build/suite`.
-Os fontes dos outros aplicativos estão incorporados em `suite/vendor`,
-incluindo as alterações locais existentes no momento da integração.
+The default Qt kit is `D:\Qt\6.7.3\msvc2019_64`. Set `LOCALFLIX_QT_DIR` for
+another location. libmpv defaults to `third_party/libmpv`; configure
+`-DLOCALFLIX_LIBMPV_DIR=C:/path/to/libmpv` in `build/suite` to override it.
+All three applications' sources are included in this repository.
 
-Para executar uma compilação de desenvolvimento, deixe o `bin` do Qt no PATH
-e instale `yt-dlp[default]` no Python. `MEDIA_SUITE_PYTHON` escolhe o executável
-Python. A versão distribuída usa o worker empacotado em `worker/`.
+For development, put Qt's `bin` directory on PATH and install `yt-dlp[default]`
+in Python. `MEDIA_SUITE_PYTHON` selects the Python executable. Distributed builds
+use `worker/download-worker.exe` instead.
+
+## Packaging and release
+
+Install Inno Setup 6, then run:
 
 ```powershell
-python -m pip install 'yt-dlp[default]' pyinstaller
-.\scripts\package-suite.ps1
+.\build.cmd
+# Or reuse an existing build and package:
+.\scripts\make-suite-release.ps1 -SkipPackage
+```
+
+The release script builds the portable package, compiles
+`installer/MediaSuite.iss`, creates SHA-256 checksums, and verifies silent
+installation, application startup, and uninstallation in an isolated directory.
+It refuses to run the installation test over an existing Media Suite install.
+`MEDIA_SUITE_ISCC` selects a custom Inno Setup compiler.
+
+Outputs for version 1.2.0:
+
+- `dist/MediaSuite-1.2.0/MediaSuite.exe`
+- `dist/MediaSuite-1.2.0-win64.zip`
+- `dist/MediaSuite-1.2.0-setup.exe`
+- `dist/SHA256SUMS.txt`
+
+`package-suite.ps1` creates only the application folder and portable ZIP.
+The original downloader release scripts remain available separately.
+
+## Validation
+
+```powershell
 ctest --test-dir build/suite --output-on-failure
 python -m unittest discover -s suite/tests -p test_worker.py -v
 ```
 
-Saídas: `dist/MediaSuite-1.1.0/MediaSuite.exe` e `dist/MediaSuite-1.1.0-win64.zip`.
-O teste `tst_suite` cobre busca e download HTTP pela interface, importação na biblioteca, conversão
-MP4 → MKV e navegação. Os testes Python verificam MP4, MP3, metadados de link
-direto, vídeo em página HTML, HLS, playlists, cookies e erros. `MEDIA_SUITE_TEST_WORKER` permite executar
-esses testes contra o worker empacotado. Os testes de reprodução do LocalFlix
-usam os clipes sintéticos de `MEDIA_SUITE_TESTDATA_DIR` (configurável no CMake).
-`--downloads` e `--tools` abrem diretamente as respectivas áreas.
-`--screenshot arquivo.png` grava uma captura e encerra o aplicativo.
+`tst_suite` exercises HTTP lookup/download through the interface, library import,
+MP4-to-MKV conversion, and navigation. Python tests cover video, MP3, direct-link
+metadata, HTML embeds, HLS, DASH, playlists, cookies, and errors. Set
+`MEDIA_SUITE_TEST_WORKER` to test the packaged worker. Playback regression tests
+use synthetic clips from `MEDIA_SUITE_TESTDATA_DIR`, configurable through CMake;
+those tests skip if clips are unavailable.
 
-Os aplicativos de origem e seus scripts de distribuição continuam disponíveis.
-Esta integração se aplica às versões Windows; não inclui as versões Android.
+`--downloads` and `--tools` open their respective pages. `--settings` opens
+Settings. `--screenshot file.png` saves a window capture and exits. This
+integration targets Windows; upstream Android applications are not included.
 
-## Licenças
+## Licenses
 
-O aplicativo combinado é distribuído sob AGPL-3.0, com o código do LocalFlix
-e do MagnifyFactory e seus avisos de licença preservados em `vendor/`.
-Consulte também `THIRD_PARTY_NOTICES.md`.
+The combined application is distributed under AGPL-3.0. LocalFlix and
+MagnifyFactory license notices remain in `vendor/`. See
+`THIRD_PARTY_NOTICES.md` for third-party details.

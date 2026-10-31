@@ -15,7 +15,7 @@ enum class SegmentKind { Intro, Ending };
 enum class ChapterRole {
     Other,
     Intro,    // "Opening", "OP1", "Intro", "Abertura"
-    Ending,   // "Ending", "ED", "Credits", "Créditos", "Encerramento"
+    Ending,   // Ending/credits labels, including recognized translations.
     Preview   // "Preview", "Next episode": only meaningful straight after an ending
 };
 

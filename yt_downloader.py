@@ -1,6 +1,6 @@
-"""YT Downloader — baixa vídeos e áudios do YouTube com yt-dlp.
+"""YT Downloader — download YouTube video and audio with yt-dlp.
 
-Interface em PySide6 com o tema visual do LocalFlix (cores, barra lateral, cards e ícones Material).
+PySide6 interface using the LocalFlix theme (colors, sidebar, cards, and Material icons).
 """
 
 import hashlib
@@ -13,7 +13,7 @@ import tempfile
 import threading
 import urllib.request
 
-# Executável sem console: stdout/stderr são None e quebrariam bibliotecas que escrevem neles.
+# Windowed executable: stdout/stderr can be None, which breaks libraries that write to them.
 if sys.stdout is None:
     sys.stdout = open(os.devnull, "w", encoding="utf-8")
 if sys.stderr is None:
@@ -42,7 +42,7 @@ def resource_path(*parts):
 
 
 def find_ffmpeg_dir():
-    """ffmpeg ao lado do executável tem prioridade; senão, o do PATH."""
+    """Prefer FFmpeg next to the executable, then look on PATH."""
     exe_dir = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
     if os.path.isfile(os.path.join(exe_dir, "ffmpeg.exe")):
         return exe_dir
@@ -54,7 +54,7 @@ FFMPEG_DIR = find_ffmpeg_dir()
 JS_RUNTIME = next((name for name in JS_RUNTIMES if shutil.which(name)), None)
 
 
-# ---------------------------------------------------------------- tema (mesmo do LocalFlix)
+# ---------------------------------------------------------------- theme (shared with LocalFlix)
 class Colors:
     BG = "#0f1115"
     SURFACE = "#171a21"
@@ -69,7 +69,7 @@ class Colors:
     DANGER = "#ef5350"
 
 
-# Ícones Material Design (Apache License 2.0), viewBox 24x24.
+# Material Design icons (Apache License 2.0), viewBox 24x24.
 ICONS = {
     "download": "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z",
     "list": "M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z",
@@ -157,7 +157,7 @@ QLabel#Badge { background: rgba(91,141,239,0.18); color: %accentHover%; border-r
 
 
 def svg_icon_file(name, color):
-    """Grava um ícone como .svg em disco para uso em url() do stylesheet."""
+    """Write an SVG icon to disk for stylesheet url() references."""
     folder = os.path.join(tempfile.gettempdir(), "ytdownloader-ui")
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, f"{name}.svg")
@@ -235,12 +235,12 @@ def use_dark_title_bar(widget):
     import ctypes
     hwnd = int(widget.winId())
     on = ctypes.c_int(1)
-    # 20 = DWMWA_USE_IMMERSIVE_DARK_MODE (19 nas primeiras builds do Windows 10)
+    # 20 = DWMWA_USE_IMMERSIVE_DARK_MODE (19 on early Windows 10 builds)
     if ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(on), ctypes.sizeof(on)) != 0:
         ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 19, ctypes.byref(on), ctypes.sizeof(on))
 
 
-# ---------------------------------------------------------------- utilidades
+# ---------------------------------------------------------------- utilities
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 
@@ -272,11 +272,11 @@ def fmt_count(n):
     if not n:
         return ""
     if n >= 1_000_000_000:
-        return f"{n / 1e9:.1f} bi".replace(".", ",")
+        return f"{n / 1e9:.1f} B"
     if n >= 1_000_000:
-        return f"{n / 1e6:.1f} mi".replace(".", ",")
+        return f"{n / 1e6:.1f} M"
     if n >= 1_000:
-        return f"{n / 1e3:.0f} mil"
+        return f"{n / 1e3:.0f} K"
     return str(n)
 
 
@@ -311,7 +311,7 @@ _pending_calls = set()
 
 
 def run_async(fn, on_done):
-    """Roda fn() numa thread e entrega (ok, resultado|erro) para on_done na thread da interface."""
+    """Run fn() on a worker and deliver (ok, result|error) to on_done on the UI thread."""
     call = _AsyncCall()
     _pending_calls.add(call)
 
@@ -324,7 +324,7 @@ def run_async(fn, on_done):
     def target():
         try:
             call.done.emit((True, fn()))
-        except Exception as e:  # noqa: BLE001 - qualquer falha vira mensagem na interface
+        except Exception as e:  # noqa: BLE001 - report any failure as a message in the interface
             call.done.emit((False, e))
 
     threading.Thread(target=target, daemon=True).start()
@@ -370,7 +370,7 @@ def format_for(audio, height):
 
 # ---------------------------------------------------------------- widgets
 class Thumb(QWidget):
-    """Capa com cantos arredondados; sem imagem, mostra gradiente com iniciais (como o LocalFlix)."""
+    """Rounded thumbnail; without an image, show a gradient with initials, like LocalFlix."""
 
     def __init__(self, width, height, radius=10, parent=None):
         super().__init__(parent)
@@ -496,8 +496,8 @@ _slots = threading.Semaphore(MAX_PARALLEL)
 
 
 class DownloadJob(QObject):
-    progress = Signal(float, str)  # porcentagem (-1 = indeterminado), texto de status
-    state_changed = Signal(str, str)  # queued | running | done | error | cancelled, mensagem
+    progress = Signal(float, str)  # percentage (-1 = indeterminate), status text
+    state_changed = Signal(str, str)  # queued | running | done | error | cancelled, message
 
     def __init__(self, url, title, thumb, out_dir, audio, height, playlist, quality_label):
         super().__init__()
@@ -514,7 +514,7 @@ class DownloadJob(QObject):
 
     def start(self):
         self._cancel.clear()
-        self._set_state("queued", "Na fila...")
+        self._set_state("queued", "Queued...")
         threading.Thread(target=self._run, daemon=True).start()
 
     def cancel(self):
@@ -531,22 +531,22 @@ class DownloadJob(QObject):
         prefix = ""
         if self.playlist and info.get("playlist_index"):
             total = info.get("n_entries") or info.get("playlist_count")
-            prefix = f"Vídeo {info['playlist_index']}" + (f" de {total}" if total else "") + " · "
+            prefix = f"Video {info['playlist_index']}" + (f" of {total}" if total else "") + " · "
         if d["status"] == "downloading":
             total = d.get("total_bytes") or d.get("total_bytes_estimate")
             done = d.get("downloaded_bytes") or 0
             pct = done / total * 100 if total else -1
-            kind = "áudio" if info.get("vcodec") == "none" and not self.audio else ""
-            parts = [f"Baixando {kind}".strip()]
+            kind = "audio" if info.get("vcodec") == "none" and not self.audio else ""
+            parts = [f"Downloading {kind}".strip()]
             if total:
-                parts.append(f"{pct:.0f}%  ·  {fmt_bytes(done)} de {fmt_bytes(total)}")
+                parts.append(f"{pct:.0f}%  ·  {fmt_bytes(done)} of {fmt_bytes(total)}")
             if d.get("speed"):
                 parts.append(f"{fmt_bytes(d['speed'])}/s")
             if d.get("eta") is not None:
-                parts.append(f"faltam {fmt_duration(d['eta']) or '0:00'}")
+                parts.append(f"time left {fmt_duration(d['eta']) or '0:00'}")
             self.progress.emit(pct, prefix + "  ·  ".join(parts))
         elif d["status"] == "finished":
-            self.progress.emit(100, prefix + "Download concluído, processando...")
+            self.progress.emit(100, prefix + "Download finished, processing...")
 
     def _pp_hook(self, d):
         if self._cancel.is_set():
@@ -554,16 +554,16 @@ class DownloadJob(QObject):
         if d["status"] == "started":
             pp = d.get("postprocessor", "")
             if pp == "Merger":
-                self.progress.emit(-1, "Juntando vídeo e áudio...")
+                self.progress.emit(-1, "Merging video and audio...")
             elif pp == "ExtractAudio":
-                self.progress.emit(-1, "Convertendo para MP3...")
+                self.progress.emit(-1, "Converting to MP3...")
 
     def _run(self):
         with _slots:
             if self._cancel.is_set():
-                self._set_state("cancelled", "Cancelado.")
+                self._set_state("cancelled", "Cancelled.")
                 return
-            self._set_state("running", "Conectando...")
+            self._set_state("running", "Connecting...")
             if self.playlist:
                 tmpl = os.path.join(self.out_dir, "%(playlist_title)s", "%(playlist_index)03d - %(title)s.%(ext)s")
             else:
@@ -593,16 +593,16 @@ class DownloadJob(QObject):
                 else:
                     downloads = (info or {}).get("requested_downloads") or [{}]
                     self.result_path = downloads[0].get("filepath")
-                self._set_state("done", "Concluído")
+                self._set_state("done", "Finished")
             except Cancelled:
-                self._set_state("cancelled", "Cancelado.")
+                self._set_state("cancelled", "Cancelled.")
             except yt_dlp.utils.DownloadError as e:
                 if self._cancel.is_set():
-                    self._set_state("cancelled", "Cancelado.")
+                    self._set_state("cancelled", "Cancelled.")
                 else:
                     self._set_state("error", clean_error(e))
             except Exception as e:  # noqa: BLE001
-                self._set_state("error", f"Erro inesperado: {clean_error(e)}")
+                self._set_state("error", f"Unexpected error: {clean_error(e)}")
 
 
 class DownloadCard(QFrame):
@@ -633,7 +633,7 @@ class DownloadCard(QFrame):
         self.bar = QProgressBar()
         self.bar.setRange(0, 100)
         self.bar.setTextVisible(False)
-        self.status = ElidedLabel("Na fila...")
+        self.status = ElidedLabel("Queued...")
         self.status.setProperty("muted", True)
         mid.addWidget(self.title)
         mid.addWidget(self.meta)
@@ -644,11 +644,11 @@ class DownloadCard(QFrame):
 
         actions = QHBoxLayout()
         actions.setSpacing(2)
-        self.btn_play = icon_button("play", "Abrir arquivo")
-        self.btn_folder = icon_button("folder", "Mostrar na pasta")
-        self.btn_retry = icon_button("refresh", "Tentar de novo")
-        self.btn_cancel = icon_button("close", "Cancelar")
-        self.btn_remove = icon_button("delete", "Remover da lista", Colors.MUTED)
+        self.btn_play = icon_button("play", "Open file")
+        self.btn_folder = icon_button("folder", "Show in folder")
+        self.btn_retry = icon_button("refresh", "Retry")
+        self.btn_cancel = icon_button("close", "Cancel")
+        self.btn_remove = icon_button("delete", "Remove from list", Colors.MUTED)
         for b in (self.btn_play, self.btn_folder, self.btn_retry, self.btn_cancel, self.btn_remove):
             actions.addWidget(b)
         lay.addLayout(actions)
@@ -660,7 +660,7 @@ class DownloadCard(QFrame):
         self.btn_remove.clicked.connect(lambda: self.removed.emit(self))
         job.progress.connect(self._on_progress)
         job.state_changed.connect(self._on_state)
-        self._on_state("queued", "Na fila...")
+        self._on_state("queued", "Queued...")
 
     def _cancel(self):
         self.job.cancel()
@@ -700,7 +700,7 @@ class DownloadCard(QFrame):
         self.btn_folder.setVisible(state == "done")
 
 
-# ---------------------------------------------------------------- páginas
+# ---------------------------------------------------------------- pages
 def page_scaffold(title):
     page = QWidget()
     outer = QVBoxLayout(page)
@@ -721,11 +721,11 @@ class DownloadPage(QWidget):
         self.settings = settings
         self.info = None
         self.url = ""
-        page, outer, _ = page_scaffold("Baixar")
+        page, outer, _ = page_scaffold("Download")
         QVBoxLayout(self).addWidget(page)
         self.layout().setContentsMargins(0, 0, 0, 0)
 
-        outer.addWidget(label("Cole o link de um vídeo ou playlist do YouTube.", muted=True))
+        outer.addWidget(label("Paste a YouTube video or playlist link.", muted=True))
 
         row = QHBoxLayout()
         row.setSpacing(8)
@@ -734,9 +734,9 @@ class DownloadPage(QWidget):
         self.url_edit.setPlaceholderText("https://www.youtube.com/watch?v=...")
         self.url_edit.setClearButtonEnabled(True)
         self.url_edit.returnPressed.connect(self.search)
-        paste = button("Colar", "paste")
+        paste = button("Paste", "paste")
         paste.clicked.connect(self._paste)
-        self.search_btn = button("Buscar", "search", "primary")
+        self.search_btn = button("Look up", "search", "primary")
         self.search_btn.clicked.connect(self.search)
         row.addWidget(self.url_edit, 1)
         row.addWidget(paste)
@@ -751,7 +751,7 @@ class DownloadPage(QWidget):
         self.card.hide()
         outer.addWidget(self.card)
 
-        self.empty = label("Nenhum vídeo carregado ainda.\nCole um link acima e clique em Buscar.", "Empty")
+        self.empty = label("No video loaded yet.\nPaste a link above and click Look up.", "Empty")
         self.empty.setAlignment(Qt.AlignCenter)
         outer.addWidget(self.empty, 1)
         outer.addStretch(0)
@@ -782,16 +782,16 @@ class DownloadPage(QWidget):
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(10)
         self.format_box = QComboBox()
-        self.format_box.addItem("Vídeo (MP4)", "video")
-        self.format_box.addItem("Áudio (MP3)", "audio")
+        self.format_box.addItem("Video (MP4)", "video")
+        self.format_box.addItem("Audio (MP3)", "audio")
         self.format_box.currentIndexChanged.connect(self._on_format)
         self.quality_box = QComboBox()
         self.quality_box.setMinimumWidth(170)
-        grid.addWidget(label("Formato", muted=True), 0, 0)
+        grid.addWidget(label("Format", muted=True), 0, 0)
         grid.addWidget(self.format_box, 0, 1)
-        grid.addWidget(label("Qualidade", muted=True), 1, 0)
+        grid.addWidget(label("Quality", muted=True), 1, 0)
         grid.addWidget(self.quality_box, 1, 1)
-        grid.addWidget(label("Salvar em", muted=True), 2, 0)
+        grid.addWidget(label("Save to", muted=True), 2, 0)
         self.dir_label = ElidedLabel()
         change = button("Alterar", "folder", "ghost")
         change.clicked.connect(self._choose_dir)
@@ -802,11 +802,11 @@ class DownloadPage(QWidget):
         grid.setColumnStretch(1, 1)
         right.addLayout(grid)
 
-        self.playlist_check = QCheckBox("Baixar a playlist inteira")
+        self.playlist_check = QCheckBox("Download the entire playlist")
         right.addWidget(self.playlist_check)
         right.addStretch(1)
 
-        self.download_btn = button("Baixar", "download", "primary")
+        self.download_btn = button("Download", "download", "primary")
         self.download_btn.setMinimumHeight(40)
         self.download_btn.clicked.connect(self._download)
         btn_row = QHBoxLayout()
@@ -816,7 +816,7 @@ class DownloadPage(QWidget):
         lay.addLayout(right, 1)
         return card
 
-    # -- ações
+    # -- actions
     def _paste(self):
         text = QApplication.clipboard().text().strip()
         if text:
@@ -824,7 +824,7 @@ class DownloadPage(QWidget):
             self.search()
 
     def _choose_dir(self):
-        d = QFileDialog.getExistingDirectory(self, "Escolher pasta", self.out_dir)
+        d = QFileDialog.getExistingDirectory(self, "Choose folder", self.out_dir)
         if d:
             self.out_dir = d
             self.dir_label.setText(d)
@@ -846,17 +846,17 @@ class DownloadPage(QWidget):
             url = "https://" + url
         self.url = url
         self.search_btn.setEnabled(False)
-        self.search_btn.setText("Buscando...")
-        self._show_message("Buscando informações do vídeo...")
+        self.search_btn.setText("Looking up...")
+        self._show_message("Looking up video information...")
         run_async(lambda: fetch_info(url), self._on_info)
 
     def _on_info(self, ok, result):
         self.search_btn.setEnabled(True)
-        self.search_btn.setText("Buscar")
+        self.search_btn.setText("Look up")
         if not ok:
             self.card.hide()
             self.empty.show()
-            self._show_message(f"Não foi possível carregar o vídeo: {clean_error(result)}", error=True)
+            self._show_message(f"Could not load the video: {clean_error(result)}", error=True)
             return
         self._show_message("")
         self.info = result
@@ -864,19 +864,19 @@ class DownloadPage(QWidget):
 
     def _fill_card(self, info):
         is_playlist = info.get("_type") == "playlist"
-        title = info.get("title") or "Sem título"
+        title = info.get("title") or "Untitled"
         self.title.setText(title)
         self.thumb.set_title(title)
         if is_playlist:
             count = info.get("playlist_count") or len(info.get("entries") or [])
-            meta = [info.get("uploader") or info.get("channel") or "", f"{count} vídeos"]
+            meta = [info.get("uploader") or info.get("channel") or "", f"{count} videos"]
             entries = info.get("entries") or []
             thumb = thumbnail_url(entries[0]) if entries else None
             self.thumb.load(thumb or thumbnail_url(info))
         else:
             views = fmt_count(info.get("view_count"))
             meta = [info.get("channel") or info.get("uploader") or "", fmt_duration(info.get("duration")),
-                    f"{views} visualizações" if views else ""]
+                    f"{views} views" if views else ""]
             self.thumb.load(thumbnail_url(info))
         self.meta.setText("  ·  ".join(m for m in meta if m))
         self.badge.setVisible(is_playlist)
@@ -891,12 +891,12 @@ class DownloadPage(QWidget):
         if not heights:
             heights = [2160, 1440, 1080, 720, 480, 360]
         self.quality_box.clear()
-        self.quality_box.addItem("Melhor qualidade", 0)
+        self.quality_box.addItem("Best quality", 0)
         for h in heights:
             self.quality_box.addItem(f"{h}p", h)
         preferred = int(self.settings.value("quality", 0))
         idx = self.quality_box.findData(preferred) if preferred else 0
-        if idx < 0:  # qualidade padrão indisponível: a maior abaixo dela
+        if idx < 0:  # preferred quality unavailable: choose the highest available below it
             idx = next((i for i in range(1, self.quality_box.count()) if self.quality_box.itemData(i) <= preferred), 0)
         self.quality_box.setCurrentIndex(idx)
         self.format_box.setCurrentIndex(self.format_box.findData(self.settings.value("format", "video")))
@@ -912,13 +912,13 @@ class DownloadPage(QWidget):
             return
         audio = self.format_box.currentData() == "audio"
         if audio and not FFMPEG_DIR:
-            QMessageBox.warning(self, APP_NAME, "Para converter em MP3 é preciso ter o ffmpeg instalado "
-                                                "(ou o ffmpeg.exe na mesma pasta do programa).")
+            QMessageBox.warning(self, APP_NAME, "MP3 conversion requires FFmpeg to be installed "
+                                                "(or ffmpeg.exe next to the application).")
             return
         try:
             os.makedirs(self.out_dir, exist_ok=True)
         except OSError as e:
-            QMessageBox.critical(self, APP_NAME, f"Não foi possível usar a pasta:\n{e}")
+            QMessageBox.critical(self, APP_NAME, f"Could not use the folder:\n{e}")
             return
         playlist = self.playlist_check.isVisible() and self.playlist_check.isChecked()
         url = self.url
@@ -949,7 +949,7 @@ class DownloadsPage(QWidget):
         QVBoxLayout(self).addWidget(page)
         self.layout().setContentsMargins(0, 0, 0, 0)
 
-        clear = button("Limpar concluídos", "delete", "ghost", Colors.MUTED)
+        clear = button("Clear finished", "delete", "ghost", Colors.MUTED)
         clear.clicked.connect(self.clear_finished)
         header.addWidget(clear)
 
@@ -960,7 +960,7 @@ class DownloadsPage(QWidget):
         self.list = QVBoxLayout(holder)
         self.list.setContentsMargins(0, 0, 8, 0)
         self.list.setSpacing(12)
-        self.empty = label("Nenhum download por aqui.\nBusque um vídeo na aba Baixar.", "Empty")
+        self.empty = label("No downloads yet.\nLook up a video on the Download page.", "Empty")
         self.empty.setAlignment(Qt.AlignCenter)
         self.empty.setMinimumHeight(240)
         self.list.addWidget(self.empty)
@@ -1004,7 +1004,7 @@ class SettingsPage(QWidget):
     def __init__(self, settings):
         super().__init__()
         self.settings = settings
-        page, outer, _ = page_scaffold("Configurações")
+        page, outer, _ = page_scaffold("Settings")
         QVBoxLayout(self).addWidget(page)
         self.layout().setContentsMargins(0, 0, 0, 0)
 
@@ -1014,39 +1014,39 @@ class SettingsPage(QWidget):
         grid.setVerticalSpacing(12)
         self.dir_edit = QLineEdit(settings.value("out_dir", DEFAULT_DIR))
         self.dir_edit.editingFinished.connect(lambda: settings.setValue("out_dir", self.dir_edit.text().strip()))
-        browse = button("Procurar...", "folder")
+        browse = button("Browse...", "folder")
         browse.clicked.connect(self._browse)
-        grid.addWidget(label("Pasta padrão", muted=True), 0, 0)
+        grid.addWidget(label("Default folder", muted=True), 0, 0)
         grid.addWidget(self.dir_edit, 0, 1)
         grid.addWidget(browse, 0, 2)
 
         self.format_box = QComboBox()
-        self.format_box.addItem("Vídeo (MP4)", "video")
-        self.format_box.addItem("Áudio (MP3)", "audio")
+        self.format_box.addItem("Video (MP4)", "video")
+        self.format_box.addItem("Audio (MP3)", "audio")
         self.format_box.setCurrentIndex(self.format_box.findData(settings.value("format", "video")))
         self.format_box.currentIndexChanged.connect(lambda: settings.setValue("format", self.format_box.currentData()))
-        grid.addWidget(label("Formato padrão", muted=True), 1, 0)
+        grid.addWidget(label("Default format", muted=True), 1, 0)
         grid.addWidget(self.format_box, 1, 1)
 
         self.quality_box = QComboBox()
-        self.quality_box.addItem("Melhor qualidade", 0)
+        self.quality_box.addItem("Best quality", 0)
         for h in (2160, 1440, 1080, 720, 480, 360):
             self.quality_box.addItem(f"{h}p", h)
         self.quality_box.setCurrentIndex(max(0, self.quality_box.findData(int(settings.value("quality", 0)))))
         self.quality_box.currentIndexChanged.connect(lambda: settings.setValue("quality", self.quality_box.currentData()))
-        grid.addWidget(label("Qualidade padrão", muted=True), 2, 0)
+        grid.addWidget(label("Default quality", muted=True), 2, 0)
         grid.addWidget(self.quality_box, 2, 1)
         grid.setColumnStretch(1, 1)
         outer.addWidget(group)
 
-        about = QGroupBox("Componentes")
+        about = QGroupBox("Components")
         av = QGridLayout(about)
         av.setHorizontalSpacing(14)
         av.setVerticalSpacing(10)
         rows = [
             ("yt-dlp", yt_dlp.version.__version__, True),
-            ("ffmpeg", FFMPEG_DIR or "não encontrado — MP3 e alta qualidade indisponíveis", bool(FFMPEG_DIR)),
-            ("Runtime JavaScript", JS_RUNTIME or "não encontrado — instale o Node.js ou Deno", bool(JS_RUNTIME)),
+            ("ffmpeg", FFMPEG_DIR or "not found — MP3 and high-quality video unavailable", bool(FFMPEG_DIR)),
+            ("JavaScript runtime", JS_RUNTIME or "not found — install Node.js or Deno", bool(JS_RUNTIME)),
         ]
         for i, (name, value, ok) in enumerate(rows):
             dot = QLabel()
@@ -1061,13 +1061,13 @@ class SettingsPage(QWidget):
         outer.addStretch(1)
 
     def _browse(self):
-        d = QFileDialog.getExistingDirectory(self, "Escolher pasta", self.dir_edit.text())
+        d = QFileDialog.getExistingDirectory(self, "Choose folder", self.dir_edit.text())
         if d:
             self.dir_edit.setText(d)
             self.settings.setValue("out_dir", d)
 
 
-# ---------------------------------------------------------------- janela
+# ---------------------------------------------------------------- window
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -1088,7 +1088,7 @@ class MainWindow(QMainWindow):
         side.setContentsMargins(14, 22, 14, 16)
         side.setSpacing(4)
         side.addWidget(label("YT Downloader", "Brand"))
-        side.addWidget(label("Seus vídeos, offline", muted=True))
+        side.addWidget(label("Your videos, offline", muted=True))
         side.addSpacing(18)
 
         self.stack = QStackedWidget()
@@ -1100,8 +1100,8 @@ class MainWindow(QMainWindow):
 
         self.nav = QButtonGroup(self)
         self.nav_buttons = []
-        for i, (text, icon_name) in enumerate([("Baixar", "download"), ("Downloads", "list"),
-                                               ("Configurações", "settings")]):
+        for i, (text, icon_name) in enumerate([("Download", "download"), ("Downloads", "list"),
+                                               ("Settings", "settings")]):
             b = QToolButton()
             b.setText(text)
             b.setProperty("nav", True)
@@ -1153,7 +1153,7 @@ class MainWindow(QMainWindow):
         active = self.downloads_page.active_count()
         if active:
             answer = QMessageBox.question(
-                self, APP_NAME, f"Há {active} download(s) em andamento. Sair e cancelar?",
+                self, APP_NAME, f"There are {active} active downloads. Exit and cancel them?",
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if answer != QMessageBox.Yes:
                 event.ignore()
@@ -1174,7 +1174,7 @@ def main():
         app.setWindowIcon(QIcon(icon_file))
     win = MainWindow()
     win.show()
-    if "--smoke-test" in sys.argv:  # usado pelo teste do instalador: abre a janela e sai com código 0
+    if "--smoke-test" in sys.argv:  # installer smoke test: open the window and exit successfully
         QTimer.singleShot(1500, app.quit)
     sys.exit(app.exec())
 

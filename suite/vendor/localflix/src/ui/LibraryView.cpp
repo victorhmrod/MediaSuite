@@ -23,7 +23,7 @@ LibraryView::LibraryView(ApplicationController& app, LibraryActions* actions, Mo
 {
     setAcceptDrops(mode != Mode::Continue);
 
-    const QString title = mode == Mode::Shows ? QStringLiteral("Séries") : (mode == Mode::Movies ? QStringLiteral("Filmes e vídeos") : QStringLiteral("Continuar assistindo"));
+    const QString title = mode == Mode::Shows ? QStringLiteral("TV shows") : (mode == Mode::Movies ? QStringLiteral("Movies and videos") : QStringLiteral("Continue watching"));
     m_title = new QLabel(title, this);
     m_title->setObjectName(QStringLiteral("PageTitle"));
     m_count = new QLabel(this);
@@ -32,19 +32,19 @@ LibraryView::LibraryView(ApplicationController& app, LibraryActions* actions, Mo
     m_toolbar = new QHBoxLayout;
     m_toolbar->setSpacing(10);
     if (mode == Mode::Shows) {
-        auto* create = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("Nova série"), this);
+        auto* create = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("New show"), this);
         create->setObjectName(QStringLiteral("NewShowButton"));
         create->setProperty("variant", QStringLiteral("primary"));
-        auto* folder = new QPushButton(Theme::icon(Icon::Folder, Colors::text, 18), QStringLiteral("Importar pasta como série"), this);
+        auto* folder = new QPushButton(Theme::icon(Icon::Folder, Colors::text, 18), QStringLiteral("Import folder as show"), this);
         connect(create, &QPushButton::clicked, m_actions, [this] { m_actions->createShowInteractive(); });
         connect(folder, &QPushButton::clicked, m_actions, [this] { m_actions->importFolderAsShow(); });
         m_toolbar->addWidget(create);
         m_toolbar->addWidget(folder);
     } else if (mode == Mode::Movies) {
-        auto* add = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("Adicionar vídeos"), this);
+        auto* add = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("Add videos"), this);
         add->setObjectName(QStringLiteral("AddMoviesButton"));
         add->setProperty("variant", QStringLiteral("primary"));
-        auto* folder = new QPushButton(Theme::icon(Icon::Folder, Colors::text, 18), QStringLiteral("Adicionar pasta"), this);
+        auto* folder = new QPushButton(Theme::icon(Icon::Folder, Colors::text, 18), QStringLiteral("Add folder"), this);
         connect(add, &QPushButton::clicked, m_actions, [this] { m_actions->importMoviesDialog(false); });
         connect(folder, &QPushButton::clicked, m_actions, [this] { m_actions->importMoviesDialog(true); });
         m_toolbar->addWidget(add);
@@ -52,7 +52,7 @@ LibraryView::LibraryView(ApplicationController& app, LibraryActions* actions, Mo
     }
     m_toolbar->addStretch();
     m_filter = new QLineEdit(this);
-    m_filter->setPlaceholderText(QStringLiteral("Filtrar…"));
+    m_filter->setPlaceholderText(QStringLiteral("Filter…"));
     m_filter->setClearButtonEnabled(true);
     m_filter->setFixedWidth(220);
     m_filter->setVisible(mode != Mode::Continue);

@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
     QApplication app(argc, argv);
     qputenv("PATH", (QCoreApplication::applicationDirPath() + QLatin1Char(';') + qEnvironmentVariable("PATH")).toLocal8Bit());
     QCoreApplication::setApplicationName(QStringLiteral("MediaSuite"));
-    QCoreApplication::setOrganizationName(QString());  // data lives in %APPDATA%\LocalFlix
+    QCoreApplication::setOrganizationName(QString());  // data lives in %APPDATA%\MediaSuite
     QCoreApplication::setApplicationVersion(QStringLiteral(MEDIA_SUITE_VERSION));
     app.setWindowIcon(QIcon(QStringLiteral(":/icons/localflix.png")));
     lf::ui::Theme::apply(app);
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
     QString error;
     if (!lf::MpvBackend::libraryAvailable(&error)) {
         QMessageBox::critical(nullptr, QStringLiteral("MediaSuite"),
-                              QStringLiteral("The video engine could not be loaded.\n\n%1\n\nReinstall LocalFlix or copy libmpv-2.dll next to LocalFlix.exe.").arg(error));
+                              QStringLiteral("The video engine could not be loaded.\n\n%1\n\nReinstall Media Suite or copy libmpv-2.dll next to MediaSuite.exe.").arg(error));
         return 2;
     }
 
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
     // The controller owns the backend, so it is declared first and destroyed last.
     lf::ApplicationController controller(dataDir, std::move(backend));
     if (!controller.initialize(&error)) {
-        QMessageBox::critical(nullptr, QStringLiteral("LocalFlix cannot open its library"),
+        QMessageBox::critical(nullptr, QStringLiteral("Media Suite cannot open its library"),
                               QStringLiteral("%1\n\nData folder: %2").arg(error, QDir::toNativeSeparators(dataDir)));
         return 4;
     }
@@ -109,6 +109,8 @@ int main(int argc, char* argv[])
             window.findChild<QToolButton*>(QStringLiteral("nav_downloads"))->click();
         if (app.arguments().contains(QStringLiteral("--tools")))
             window.findChild<QToolButton*>(QStringLiteral("nav_tools"))->click();
+        if (app.arguments().contains(QStringLiteral("--settings")))
+            window.navigateTo(lf::ui::Page::Settings);
         // `--screenshot <png>`: render the window with Qt itself, then exit (docs / smoke test).
         const QStringList args = app.arguments();
         if (const int i = int(args.indexOf(QStringLiteral("--screenshot"))); i >= 0 && i + 1 < args.size()) {

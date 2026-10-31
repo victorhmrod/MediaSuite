@@ -41,12 +41,12 @@ struct NavEntry {
     const char* label;
 };
 constexpr NavEntry kNav[] = {
-    {Page::Home, Icon::Home, "Início"},
-    {Page::Continue, Icon::Continue, "Continuar assistindo"},
-    {Page::Shows, Icon::Tv, "Séries"},
-    {Page::Movies, Icon::Movie, "Filmes e vídeos"},
-    {Page::Collections, Icon::Collections, "Coleções"},
-    {Page::Settings, Icon::Settings, "Configurações"},
+    {Page::Home, Icon::Home, "Home"},
+    {Page::Continue, Icon::Continue, "Continue watching"},
+    {Page::Shows, Icon::Tv, "TV shows"},
+    {Page::Movies, Icon::Movie, "Movies and videos"},
+    {Page::Collections, Icon::Collections, "Collections"},
+    {Page::Settings, Icon::Settings, "Settings"},
 };
 }  // namespace
 
@@ -83,7 +83,7 @@ void MainWindow::buildUi()
     sl->setSpacing(4);
     auto* brand = new QLabel(QStringLiteral("Media Suite"), m_sidebar);
     brand->setObjectName(QStringLiteral("Brand"));
-    auto* tag = new QLabel(QStringLiteral("Baixe. Transforme. Assista."), m_sidebar);
+    auto* tag = new QLabel(QStringLiteral("Download. Transform. Watch."), m_sidebar);
     tag->setProperty("muted", true);
     sl->addWidget(brand);
     sl->addWidget(tag);
@@ -113,7 +113,7 @@ void MainWindow::buildUi()
         });
     }
     sl->addSpacing(14);
-    auto* toolsLabel = new QLabel(QStringLiteral("FERRAMENTAS"), m_sidebar);
+    auto* toolsLabel = new QLabel(QStringLiteral("TOOLS"), m_sidebar);
     toolsLabel->setProperty("muted", true);
     sl->addWidget(toolsLabel);
     m_downloadNav = new QToolButton(m_sidebar);
@@ -127,10 +127,10 @@ void MainWindow::buildUi()
         m_navGroup->addButton(button);
         sl->addWidget(button);
     }
-    m_downloadNav->setText(QStringLiteral("  Baixar vídeos"));
+    m_downloadNav->setText(QStringLiteral("  Download videos"));
     m_downloadNav->setObjectName(QStringLiteral("nav_downloads"));
     m_downloadNav->setIcon(Theme::icon(Icon::Folder));
-    m_toolsNav->setText(QStringLiteral("  Converter e editar"));
+    m_toolsNav->setText(QStringLiteral("  Convert and edit"));
     m_toolsNav->setObjectName(QStringLiteral("nav_tools"));
     m_toolsNav->setIcon(Theme::icon(Icon::Edit));
     sl->addStretch();
@@ -419,7 +419,7 @@ void MainWindow::setPictureInPicture(bool on)
 void MainWindow::closeEvent(QCloseEvent* event)
 {
     if (m_downloads->hasActiveDownloads() && QMessageBox::question(this, QStringLiteral("Media Suite"),
-            QStringLiteral("Há downloads em andamento. Sair e cancelar?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) {
+            QStringLiteral("Downloads are still running. Exit and cancel them?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) {
         event->ignore();
         return;
     }
