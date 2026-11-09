@@ -84,6 +84,10 @@ another location. libmpv defaults to `third_party/libmpv`; configure
 `-DLOCALFLIX_LIBMPV_DIR=C:/path/to/libmpv` in `build/suite` to override it.
 All three applications' sources are included in this repository.
 
+The application icon is defined in `assets/media-suite.svg`: a white clapperboard
+on a black background. `python tools/make_media_suite_icon.py` regenerates its
+PNG and multi-resolution Windows ICO assets (requires PySide6 and Pillow).
+
 For development, put Qt's `bin` directory on PATH and install `yt-dlp[default]`
 in Python. `MEDIA_SUITE_PYTHON` selects the Python executable. Distributed builds
 use `worker/download-worker.exe` instead.
@@ -104,11 +108,11 @@ installation, application startup, and uninstallation in an isolated directory.
 It refuses to run the installation test over an existing Media Suite install.
 `MEDIA_SUITE_ISCC` selects a custom Inno Setup compiler.
 
-Outputs for version 1.2.0:
+Outputs for version 1.2.1:
 
-- `dist/MediaSuite-1.2.0/MediaSuite.exe`
-- `dist/MediaSuite-1.2.0-win64.zip`
-- `dist/MediaSuite-1.2.0-setup.exe`
+- `dist/MediaSuite-1.2.1/MediaSuite.exe`
+- `dist/MediaSuite-1.2.1-win64.zip`
+- `dist/MediaSuite-1.2.1-setup.exe`
 - `dist/SHA256SUMS.txt`
 
 `package-suite.ps1` creates only the application folder and portable ZIP.

@@ -1,6 +1,6 @@
 ; Media Suite Windows installer. Build with scripts/make-suite-release.ps1.
 #ifndef AppVersion
-  #define AppVersion "1.2.0"
+  #define AppVersion "1.2.1"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\dist\MediaSuite-" + AppVersion
@@ -25,7 +25,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=..\dist
 OutputBaseFilename=MediaSuite-{#AppVersion}-setup
-SetupIconFile=..\suite\vendor\localflix\resources\localflix.ico
+SetupIconFile=..\assets\media-suite.ico
 UninstallDisplayIcon={app}\MediaSuite.exe
 LicenseFile=..\LICENSE
 Compression=lzma2/fast

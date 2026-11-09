@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(MediaSuite VERSION 1.2.0 LANGUAGES CXX RC)
+project(MediaSuite VERSION 1.2.1 LANGUAGES CXX RC)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
@@ -39,7 +39,9 @@ target_include_directories(localflix_ui PUBLIC suite/src)
 target_sources(localflix_ui PRIVATE suite/src/DownloadsView.cpp suite/src/DownloadsView.h)
 target_compile_definitions(localflix_ui PRIVATE MEDIA_SUITE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
+configure_file(assets/media-suite.rc.in "${CMAKE_CURRENT_BINARY_DIR}/media-suite.rc" @ONLY)
 qt_add_executable(MediaSuite WIN32 suite/src/main.cpp
+    assets/media-suite.qrc "${CMAKE_CURRENT_BINARY_DIR}/media-suite.rc"
     suite/vendor/localflix/resources/resources.qrc suite/vendor/magnify/resources/icon.qrc)
 target_link_libraries(MediaSuite PRIVATE localflix_ui)
 target_compile_definitions(MediaSuite PRIVATE MEDIA_SUITE_VERSION="${PROJECT_VERSION}")

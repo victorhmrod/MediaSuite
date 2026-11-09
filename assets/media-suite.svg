@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <rect width="256" height="256" fill="#000"/>
+  <rect x="44" y="116" width="168" height="98" rx="8" fill="#fff"/>
+  <path d="M58 146h140" stroke="#000" stroke-width="8"/>
+  <defs>
+    <clipPath id="clapper">
+      <path d="M42 86 200 44 211 84 53 126Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#clapper)">
+    <path fill="#fff" d="M42 86 200 44 211 84 53 126Z"/>
+    <path fill="#000" d="m62 55 22-6 34 68-22 6Zm55-15 22-6 34 68-22 6Zm55-15 22-6 34 68-22 6Z"/>
+  </g>
+</svg>

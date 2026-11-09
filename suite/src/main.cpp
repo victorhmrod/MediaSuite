@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName(QStringLiteral("MediaSuite"));
     QCoreApplication::setOrganizationName(QString());  // data lives in %APPDATA%\MediaSuite
     QCoreApplication::setApplicationVersion(QStringLiteral(MEDIA_SUITE_VERSION));
-    app.setWindowIcon(QIcon(QStringLiteral(":/icons/localflix.png")));
+    app.setWindowIcon(QIcon(QStringLiteral(":/icons/media-suite.png")));
     lf::ui::Theme::apply(app);
 
     const QString dataDir = lf::ApplicationController::defaultDataDir();

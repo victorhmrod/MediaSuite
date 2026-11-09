@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="/icons">
+    <file alias="media-suite.png">media-suite.png</file>
+  </qresource>
+</RCC>
