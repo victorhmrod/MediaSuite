@@ -2,6 +2,7 @@
 
 #include "Theme.h"
 #include "Toast.h"
+#include "UpdatePanel.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -36,6 +37,10 @@ SettingsView::SettingsView(ApplicationController& app, const QString& engineInfo
     auto* title = new QLabel(QStringLiteral("Settings"), content);
     title->setObjectName(QStringLiteral("PageTitle"));
     root->addWidget(title);
+    auto* updates = new UpdatePanel(content);
+    root->addWidget(updates);
+    connect(updates, &UpdatePanel::updateAvailable, this, &SettingsView::updateAvailable);
+    connect(updates, &UpdatePanel::installRequested, this, &SettingsView::installUpdateRequested);
 
     auto note = [content](const QString& text) {
         auto* l = new QLabel(text, content);

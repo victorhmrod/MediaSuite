@@ -49,6 +49,8 @@ public:
     // batched so they all share one dialog / one set of jobs. A non-empty
     // targetFormat skips the dialog and converts straight to that format.
     void openExternalFiles(const QStringList &filePaths, const QString &targetFormat = {});
+    magnify::core::ConversionJob* enqueueFile(const QString &inputPath, const QString &targetExt, const QVariantMap &presetParameters = {});
+    magnify::core::JobManager& jobManager() { return *m_jobManager; }
 
 signals:
     void importRequested(QString path);
@@ -70,7 +72,6 @@ private:
     // apply it to every matching file.
     void addInputFiles(const QStringList &paths);
     void addInputFolder();
-    void enqueueFile(const QString &inputPath, const QString &targetExt, const QVariantMap &presetParameters = {});
     // Merges PDFs and/or images (any mix) into one PDF — each image becomes
     // a page, via PdfEngine's merge operation.
     void mergeIntoPdf(const QStringList &files);

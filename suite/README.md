@@ -18,7 +18,11 @@ videos, Collections, Settings, Download videos, and Convert and edit.
 
 Paste an HTTP/HTTPS link and select **Look up**. The application detects the
 source, displays a preview when available, and lists the reported quality options.
-Choose video or MP3 audio, a destination folder, and **Download**.
+Choose an output format, a destination folder, and **Download**. **Keep downloaded
+format** saves the source without conversion. Selecting video (MP4, MKV, WebM,
+MOV, AVI, WMV, MPEG, FLV), audio (MP3, WAV, FLAC, AAC, M4A, OGG), or an image
+format starts the integrated converter after download. Image outputs use the
+first frame, including GIF. Only compatible media formats are offered.
 
 Sources include YouTube, Google Drive, direct media files, videos embedded in
 websites, and non-DRM HLS/DASH streams supported by yt-dlp. Drive file links such
@@ -35,7 +39,35 @@ can prevent downloading.
 
 Up to three downloads run at once. Each job supports cancellation, retry,
 opening the result, showing its folder, importing video into the library, and
-sending a file to the converter. Automatic library import is optional.
+converting directly on the download card. You can change the card's format
+and convert again after completion. Playlist downloads convert every downloaded
+file. Conversion progress, errors, cancellation, and retry remain on that page;
+the same jobs appear in **Convert and edit**. Retrying a failed conversion reuses
+the downloaded file. Originals and existing output files are preserved. Automatic
+library import adds successful video outputs, not audio or still images.
+
+### Application updates (private repository)
+
+Open **Settings → Application updates** and save a fine-grained GitHub token
+with **Contents: read** access to `victorhmrod/MediaSuite`. The application stores
+the token in Windows Credential Manager, not in its settings files or logs.
+See [GitHub's release API permissions](https://docs.github.com/en/rest/releases/releases#get-the-latest-release).
+Leaving the token field blank and choosing **Save token** removes it.
+
+**Check for updates** checks the latest stable release. Automatic discovery is
+enabled at startup and can be disabled with the checkbox. A newer release
+produces a notification; **Download update** fetches its Windows installer.
+The size and SHA-256 digest must match GitHub's release asset metadata. The
+application rechecks the file before installation and never forwards the token
+to the signed asset CDN URL.
+
+Select **Install update** when ready, then confirm closing Media Suite. Active
+download or conversion jobs must finish or be cancelled first. The installer
+retains the existing per-user/all-user installation location when recognized;
+Windows may request elevation for an all-user installation. Discovery never
+installs an update without confirmation. Install version 1.3.0 once to enable
+this feature for subsequent releases. This updates the application package,
+including its bundled worker; it does not update external tools independently.
 
 ### Library, playback, and tools
 
@@ -108,11 +140,11 @@ installation, application startup, and uninstallation in an isolated directory.
 It refuses to run the installation test over an existing Media Suite install.
 `MEDIA_SUITE_ISCC` selects a custom Inno Setup compiler.
 
-Outputs for version 1.2.1:
+Outputs for version 1.3.0:
 
-- `dist/MediaSuite-1.2.1/MediaSuite.exe`
-- `dist/MediaSuite-1.2.1-win64.zip`
-- `dist/MediaSuite-1.2.1-setup.exe`
+- `dist/MediaSuite-1.3.0/MediaSuite.exe`
+- `dist/MediaSuite-1.3.0-win64.zip`
+- `dist/MediaSuite-1.3.0-setup.exe`
 - `dist/SHA256SUMS.txt`
 
 `package-suite.ps1` creates only the application folder and portable ZIP.
@@ -125,8 +157,12 @@ ctest --test-dir build/suite --output-on-failure
 python -m unittest discover -s suite/tests -p test_worker.py -v
 ```
 
-`tst_suite` exercises HTTP lookup/download through the interface, library import,
-MP4-to-MKV conversion, and navigation. Python tests cover video, MP3, direct-link
+`tst_suite` exercises HTTP lookup/download through the interface, automatic and
+manual conversion, video/audio/image outputs, conversion failure/retry, playlist
+conversion, collision-safe output paths, library import, and navigation.
+`tst_updates` tests isolated Windows credential storage, startup discovery,
+version comparison, authenticated downloads, SHA-256 checks, corrupted/tampered
+installers, unauthorized requests, and rejected redirects. Python tests cover video, MP3, direct-link
 metadata, HTML embeds, HLS, DASH, playlists, cookies, and errors. Set
 `MEDIA_SUITE_TEST_WORKER` to test the packaged worker. Playback regression tests
 use synthetic clips from `MEDIA_SUITE_TESTDATA_DIR`, configurable through CMake;

@@ -111,7 +111,7 @@ if __name__ == "__main__":
         if not paths:
             raise RuntimeError("No files were completed.")
         result = os.path.commonpath([str(Path(path).parent) for path in paths]) if request["playlist"] or len(paths) > 1 else paths[0]
-        emit_event(type="state", state="done", message="Finished", path=result)
+        emit_event(type="state", state="done", message="Finished", path=result, paths=paths)
     except Exception as error:
         message = re.sub(r"\x1b\[[0-9;]*m", "", str(error))
         if "Unsupported URL" in message:

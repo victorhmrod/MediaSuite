@@ -116,6 +116,8 @@ class WorkerTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, events)
         self.assertEqual(events[-1]["state"], "done")
         self.assertEqual(len(list(Path(events[-1]["path"]).glob("*.mp4"))), 2)
+        self.assertEqual(len(events[-1]["paths"]), 2)
+        self.assertTrue(all(Path(path).is_file() for path in events[-1]["paths"]))
 
     def test_authenticated_download_with_selected_cookies(self):
         cookies = self.root / "cookies.txt"

@@ -23,6 +23,10 @@ class SettingsView : public QWidget {
 public:
     SettingsView(ApplicationController& app, const QString& engineInfo, Toast* toast, QWidget* parent = nullptr);
 
+signals:
+    void updateAvailable(QString version);
+    void installUpdateRequested(QString installer);
+
 protected:
     void showEvent(QShowEvent* event) override;
 

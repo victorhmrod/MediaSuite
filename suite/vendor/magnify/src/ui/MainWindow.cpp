@@ -763,7 +763,7 @@ void MainWindow::addInputFolder() {
     addInputFiles(files);
 }
 
-void MainWindow::enqueueFile(const QString &inputPath, const QString &targetExt, const QVariantMap &presetParameters) {
+magnify::core::ConversionJob* MainWindow::enqueueFile(const QString &inputPath, const QString &targetExt, const QVariantMap &presetParameters) {
     // Export next to the source file instead of a separate output folder.
     const QFileInfo inputInfo(inputPath);
     const QDir outDir = inputInfo.absoluteDir();
@@ -776,9 +776,9 @@ void MainWindow::enqueueFile(const QString &inputPath, const QString &targetExt,
         job->setTargetFormat(QStringLiteral("pdf"));
         job->setEngineName(QStringLiteral("PDF Tools"));
         job->setParameters(presetParameters);
-        m_jobManager->addJob(std::move(job));
+        auto* added = m_jobManager->addJob(std::move(job));
         statusBar()->showMessage(QStringLiteral("Queued: split %1").arg(inputInfo.fileName()), 4000);
-        return;
+        return added;
     }
 
     QString outputPath = outDir.filePath(inputInfo.completeBaseName() + QStringLiteral(".") + targetExt);
@@ -786,6 +786,12 @@ void MainWindow::enqueueFile(const QString &inputPath, const QString &targetExt,
     // Never let the output overwrite the input file it comes from.
     if (QFileInfo(outputPath).absoluteFilePath().compare(inputInfo.absoluteFilePath(), Qt::CaseInsensitive) == 0) {
         outputPath = outDir.filePath(inputInfo.completeBaseName() + QStringLiteral(" (converted).") + targetExt);
+    }
+    int suffix = 2;
+    while (QFileInfo::exists(outputPath) || std::any_of(m_jobManager->jobs().cbegin(), m_jobManager->jobs().cend(), [&outputPath](const ConversionJob* job) {
+        return job->outputPath().compare(outputPath, Qt::CaseInsensitive) == 0;
+    })) {
+        outputPath = outDir.filePath(QStringLiteral("%1 (converted %2).%3").arg(inputInfo.completeBaseName()).arg(suffix++).arg(targetExt));
     }
 
     const QString sourceExt = inputInfo.suffix().toLower();
@@ -813,8 +819,9 @@ void MainWindow::enqueueFile(const QString &inputPath, const QString &targetExt,
     job->setEngineName(engineName);
     job->setParameters(parameters);
 
-    m_jobManager->addJob(std::move(job));
+    auto* added = m_jobManager->addJob(std::move(job));
     statusBar()->showMessage(QStringLiteral("Queued: %1 → %2").arg(inputInfo.fileName(), targetExt.toUpper()), 4000);
+    return added;
 }
 
 void MainWindow::appendRow(ConversionJob *job) {
@@ -847,7 +854,7 @@ void MainWindow::refreshRow(ConversionJob *job) {
             m_queueTable->item(row, ColumnEta)
                 ->setText(job->etaSeconds() >= 0 ? QStringLiteral("%1s").arg(job->etaSeconds())
                                                   : QStringLiteral("-"));
-            if (job->status() == JobStatus::Failed && !job->errorMessage().isEmpty()) {
+            if (job->status() == JobStatus::Failed && !job->errorMessage().isEmpty() && !job->parameters().value(QStringLiteral("downloadConversion")).toBool()) {
                 QMessageBox::warning(this, QStringLiteral("Conversion failed"),
                                       QStringLiteral("%1\n\nDetails:\n%2")
                                           .arg(QFileInfo(job->inputPath()).fileName(), job->errorMessage()));

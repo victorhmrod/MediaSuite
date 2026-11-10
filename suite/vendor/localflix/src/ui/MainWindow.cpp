@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "DownloadsView.h"
 #include "ui/MainWindow.h"
+#include "core/JobManager.h"
 
 #include "CollectionsView.h"
 #include "Dialogs.h"
@@ -21,6 +22,9 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
+#include <QProcess>
+#include <QDir>
+#include <QSettings>
 #include <QScreen>
 #include <QShortcut>
 #include <QStackedWidget>
@@ -65,7 +69,11 @@ MainWindow::MainWindow(ApplicationController& app, MpvBackend* backend, QWidget*
     navigateTo(Page::Home);
 }
 
-MainWindow::~MainWindow() = default;
+MainWindow::~MainWindow()
+{
+    // Download cards observe conversion jobs owned by m_tools.
+    delete m_downloads;
+}
 
 void MainWindow::buildUi()
 {
@@ -156,8 +164,37 @@ void MainWindow::buildUi()
     for (QWidget* w : std::initializer_list<QWidget*>{m_home, m_continue, m_shows, m_movies, m_collections, m_settings, m_details, m_player})
         m_stack->addWidget(w);
 
-    m_downloads = new DownloadsView(m_stack);
     m_tools = new magnify::ui::MainWindow(m_stack);
+    m_downloads = new DownloadsView(*m_tools, m_stack);
+    connect(m_settings, &SettingsView::updateAvailable, this, [this](const QString& version) {
+        m_toast->showMessage(QStringLiteral("Media Suite %1 is available. Open Settings to download the update.").arg(version), Toast::Kind::Info, 10000);
+    });
+    connect(m_settings, &SettingsView::installUpdateRequested, this, [this](const QString& installer) {
+        using magnify::core::JobStatus;
+        bool busy = m_downloads->hasActiveDownloads();
+        for (const auto* job : m_tools->jobManager().jobs())
+            if (job->status() == JobStatus::Queued || job->status() == JobStatus::Preparing || job->status() == JobStatus::Running || job->status() == JobStatus::Paused) busy = true;
+        if (busy) {
+            QMessageBox::information(this, QStringLiteral("Application update"), QStringLiteral("Finish or cancel active download and conversion jobs before installing the update."));
+            return;
+        }
+        if (QMessageBox::question(this, QStringLiteral("Application update"), QStringLiteral("Close Media Suite and launch the verified update installer?")) != QMessageBox::Yes) return;
+        const QString directory = QCoreApplication::applicationDirPath();
+        const QString key = QStringLiteral("Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{BF48B7AD-D1F1-45ED-AB6A-8DF807F66CAB}_is1");
+        QSettings machine(QStringLiteral("HKEY_LOCAL_MACHINE\\") + key, QSettings::NativeFormat);
+        QSettings user(QStringLiteral("HKEY_CURRENT_USER\\") + key, QSettings::NativeFormat);
+        QStringList arguments{QStringLiteral("/NORESTART")};
+        const QString machineLocation = machine.value(QStringLiteral("InstallLocation")).toString();
+        const QString userLocation = user.value(QStringLiteral("InstallLocation")).toString();
+        const bool machineInstall = !machineLocation.isEmpty() && QDir(machineLocation) == QDir(directory);
+        if (machineInstall)
+            arguments << QStringLiteral("/ALLUSERS") << QStringLiteral("/DIR=") + QDir::toNativeSeparators(directory);
+        if (!machineInstall && !userLocation.isEmpty() && QDir(userLocation) == QDir(directory))
+            arguments << QStringLiteral("/CURRENTUSER") << QStringLiteral("/DIR=") + QDir::toNativeSeparators(directory);
+        if (!close()) return;
+        if (!QProcess::startDetached(installer, arguments))
+            QMessageBox::critical(nullptr, QStringLiteral("Application update"), QStringLiteral("Could not launch the installer. You can restart Media Suite and try again."));
+    });
     m_tools->setWindowFlags(Qt::Widget);
     m_stack->addWidget(m_downloads);
     m_stack->addWidget(m_tools);
@@ -174,11 +211,6 @@ void MainWindow::buildUi()
     });
     connect(m_tools, &magnify::ui::MainWindow::importRequested, m_actions, [this](const QString& path) {
         m_actions->importMovies({path});
-    });
-    connect(m_downloads, &DownloadsView::convertRequested, this, [this](const QString& path) {
-        m_stack->setCurrentWidget(m_tools);
-        m_toolsNav->setChecked(true);
-        m_tools->openExternalFile(path);
     });
 
     root->addWidget(m_sidebar);

@@ -1,6 +1,9 @@
 #include "DownloadsView.h"
 #include "Theme.h"
 #include "MediaImportService.h"
+#include "ui/MainWindow.h"
+#include "core/ConversionJob.h"
+#include "core/JobManager.h"
 
 #include <QCheckBox>
 #include <QClipboard>
@@ -25,6 +28,21 @@
 #include <QUrl>
 #include <QVBoxLayout>
 
+void populateConversionFormats(QComboBox* combo)
+{
+    using namespace magnify::core;
+    combo->addItem(QStringLiteral("Keep downloaded format"), QString());
+    for (const auto& format : FormatRegistry::instance().all()) {
+        if (!format.supportsOutput) continue;
+        QString category;
+        if (format.category == FormatCategory::Video) category = QStringLiteral("Video");
+        if (format.category == FormatCategory::Audio) category = QStringLiteral("Audio");
+        if (format.category == FormatCategory::Image) category = QStringLiteral("Image (first frame)");
+        if (category.isEmpty()) continue;
+        combo->addItem(QStringLiteral("%1 · %2").arg(category, format.extension.toUpper()), format.extension);
+    }
+}
+
 // Both metadata lookup and downloads use the original Python engine.
 void startDownloadWorker(QProcess& process)
 {
@@ -38,8 +56,8 @@ void startDownloadWorker(QProcess& process)
                   {QStringLiteral("-u"), QStringLiteral(MEDIA_SUITE_SOURCE_DIR "/suite/download_worker.py")});
 }
 
-DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
-    : QFrame(parent), m_request(std::move(request))
+DownloadCard::DownloadCard(QJsonObject request, magnify::ui::MainWindow& converter, QWidget* parent)
+    : QFrame(parent), m_converter(&converter), m_request(std::move(request))
 {
     setObjectName(QStringLiteral("Card"));
     auto* layout = new QVBoxLayout(this);
@@ -58,13 +76,21 @@ DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
     m_progress->setTextVisible(false);
     m_progress->setValue(0);
     layout->addWidget(m_progress);
+    m_outputFormat = new QComboBox(this);
+    m_outputFormat->setObjectName(QStringLiteral("conversionFormat"));
+    populateConversionFormats(m_outputFormat);
+    m_outputFormat->setCurrentIndex(qMax(0, m_outputFormat->findData(m_request.value(QStringLiteral("convertTo")).toString())));
+    m_outputFormat->hide();
+    layout->addWidget(m_outputFormat);
     auto* actions = new QHBoxLayout;
     m_cancel = new QPushButton(QStringLiteral("Cancel"), this);
     m_retry = new QPushButton(QStringLiteral("Retry"), this);
+    m_retry->setObjectName(QStringLiteral("retryDownload"));
     m_open = new QPushButton(QStringLiteral("Open"), this);
     m_folder = new QPushButton(QStringLiteral("Show in folder"), this);
     m_import = new QPushButton(QStringLiteral("Add to library"), this);
     m_convert = new QPushButton(QStringLiteral("Convert"), this);
+    m_convert->setObjectName(QStringLiteral("convertDownload"));
     for (auto* button : {m_cancel, m_retry, m_open, m_folder, m_import, m_convert}) {
         actions->addWidget(button);
         button->setVisible(button == m_cancel);
@@ -73,6 +99,22 @@ DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
     layout->addLayout(actions);
     connect(m_cancel, &QPushButton::clicked, this, &DownloadCard::cancel);
     connect(m_retry, &QPushButton::clicked, this, [this] {
+        if (!m_conversions.isEmpty() && m_converter) {
+            for (const auto& job : m_conversions) {
+                if (job) continue;
+                m_conversions.clear();
+                m_state = QStringLiteral("done");
+                OnConvertCallback();
+                return;
+            }
+            m_conversionCancelled = false;
+            m_state = QStringLiteral("converting");
+            for (const auto& job : m_conversions)
+                if (job) m_converter->jobManager().retryJob(job->id());
+            m_converter->jobManager().startQueue();
+            OnConversionChangedCallback();
+            return;
+        }
         m_state = QStringLiteral("queued");
         m_status->setText(QStringLiteral("Queued…"));
         m_retry->hide();
@@ -86,7 +128,7 @@ DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
         QProcess::startDetached(QStringLiteral("explorer.exe"), {QStringLiteral("/select,"), QDir::toNativeSeparators(m_path)});
     });
     connect(m_import, &QPushButton::clicked, this, [this] { emit importRequested(m_path); });
-    connect(m_convert, &QPushButton::clicked, this, [this] { emit convertRequested(m_path); });
+    connect(m_convert, &QPushButton::clicked, this, &DownloadCard::OnConvertCallback);
     connect(&m_process, &QProcess::readyReadStandardOutput, this, &DownloadCard::OnReadyReadCallback);
     connect(&m_process, &QProcess::started, this, [this] {
         m_process.write(QJsonDocument(m_request).toJson(QJsonDocument::Compact) + '\n');
@@ -105,15 +147,17 @@ DownloadCard::DownloadCard(QJsonObject request, QWidget* parent)
             m_state = QStringLiteral("error");
             m_status->setText(QStringLiteral("The download engine stopped. %1").arg(QString::fromUtf8(m_process.readAllStandardError()).right(1200)));
         }
-        m_cancel->hide();
-        m_retry->setVisible(m_state != QStringLiteral("done"));
-        m_progress->setRange(0, 100);
+        updateActions();
         emit stateChanged();
     });
 }
 
 DownloadCard::~DownloadCard()
 {
+    if (m_converter) {
+        for (const auto& job : m_conversions)
+            if (job) m_converter->jobManager().cancelJob(job->id());
+    }
     if (m_process.state() == QProcess::NotRunning) return;
     m_process.disconnect(this);
     QProcess::execute(QStringLiteral("taskkill.exe"), {QStringLiteral("/PID"), QString::number(m_process.processId()), QStringLiteral("/T"), QStringLiteral("/F")});
@@ -122,12 +166,17 @@ DownloadCard::~DownloadCard()
 
 bool DownloadCard::active() const
 {
-    return m_state == QStringLiteral("queued") || m_process.state() != QProcess::NotRunning;
+    return m_state == QStringLiteral("queued") || m_state == QStringLiteral("converting") || downloading();
 }
 
 bool DownloadCard::queued() const
 {
     return m_state == QStringLiteral("queued");
+}
+
+bool DownloadCard::downloading() const
+{
+    return m_process.state() != QProcess::NotRunning;
 }
 
 void DownloadCard::start()
@@ -141,6 +190,13 @@ void DownloadCard::start()
 void DownloadCard::cancel()
 {
     if (!active()) return;
+    if (m_state == QStringLiteral("converting") && m_converter) {
+        m_conversionCancelled = true;
+        for (const auto& job : m_conversions)
+            if (job) m_converter->jobManager().cancelJob(job->id());
+        OnConversionChangedCallback();
+        return;
+    }
     m_state = QStringLiteral("cancelled");
     m_status->setText(QStringLiteral("Cancelled"));
     m_cancel->hide();
@@ -175,18 +231,115 @@ void DownloadCard::OnReadyReadCallback()
         m_path = event.value(QStringLiteral("path")).toString();
         m_progress->setRange(0, 100);
         m_progress->setValue(100);
-        const bool exists = QFileInfo::exists(m_path);
-        m_open->setVisible(exists);
-        m_folder->setVisible(exists);
-        const bool video = exists && (QFileInfo(m_path).isDir() || lf::MediaImportService::isVideoFile(m_path));
-        m_import->setVisible(video);
-        m_convert->setVisible(exists && QFileInfo(m_path).isFile());
+        m_downloadPaths.clear();
+        for (const auto path : event.value(QStringLiteral("paths")).toArray())
+            if (QFileInfo(path.toString()).isFile()) m_downloadPaths.append(path.toString());
+        if (m_downloadPaths.isEmpty() && QFileInfo(m_path).isFile()) m_downloadPaths.append(m_path);
+        updateActions();
+        if (!m_request.value(QStringLiteral("convertTo")).toString().isEmpty()) {
+            OnConvertCallback();
+            continue;
+        }
+        const bool video = QFileInfo::exists(m_path) && (QFileInfo(m_path).isDir() || lf::MediaImportService::isVideoFile(m_path));
         if (video && m_request.value(QStringLiteral("autoImport")).toBool())
             emit importRequested(m_path);
     }
 }
 
-DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
+void DownloadCard::updateActions()
+{
+    const bool busy = active();
+    const bool exists = QFileInfo::exists(m_path);
+    m_cancel->setVisible(busy);
+    m_retry->setVisible(!busy && (m_state == QStringLiteral("error") || m_state == QStringLiteral("cancelled")));
+    m_open->setVisible(exists);
+    m_folder->setVisible(exists);
+    m_import->setVisible(!busy && exists && (QFileInfo(m_path).isDir() || lf::MediaImportService::isVideoFile(m_path)));
+    m_outputFormat->setVisible(!m_downloadPaths.isEmpty());
+    m_outputFormat->setEnabled(!busy);
+    m_convert->setVisible(!m_downloadPaths.isEmpty());
+    m_convert->setEnabled(!busy);
+}
+
+void DownloadCard::OnConvertCallback()
+{
+    if (!m_converter || m_state == QStringLiteral("converting")) return;
+    const QString target = m_outputFormat->currentData().toString();
+    if (target.isEmpty()) {
+        m_status->setText(QStringLiteral("Choose an output format to convert the downloaded file."));
+        return;
+    }
+    if (m_downloadPaths.isEmpty()) {
+        m_state = QStringLiteral("error");
+        m_status->setText(QStringLiteral("No downloaded files were reported for conversion."));
+        updateActions();
+        return;
+    }
+    for (const auto& job : m_conversions)
+        if (job) disconnect(job, nullptr, this, nullptr);
+    m_conversions.clear();
+    m_conversionCancelled = false;
+    m_state = QStringLiteral("converting");
+    for (const auto& path : m_downloadPaths) {
+        auto* job = m_converter->enqueueFile(path, target, {{QStringLiteral("downloadConversion"), true}});
+        m_conversions.append(job);
+        connect(job, &magnify::core::ConversionJob::statusChanged, this, &DownloadCard::OnConversionChangedCallback);
+        connect(job, &magnify::core::ConversionJob::progressChanged, this, &DownloadCard::OnConversionChangedCallback);
+        connect(job, &QObject::destroyed, this, &DownloadCard::OnConversionChangedCallback);
+    }
+    updateActions();
+    m_converter->jobManager().startQueue();
+    OnConversionChangedCallback();
+}
+
+void DownloadCard::OnConversionChangedCallback()
+{
+    using magnify::core::JobStatus;
+    if (m_conversions.isEmpty()) return;
+    int progress = 0;
+    bool busy = false;
+    QString error;
+    QStringList results;
+    for (const auto& job : m_conversions) {
+        if (!job) {
+            error = QStringLiteral("A conversion was removed from the queue.");
+            continue;
+        }
+        progress += job->progressPercent();
+        if (job->status() == JobStatus::Queued || job->status() == JobStatus::Preparing || job->status() == JobStatus::Running || job->status() == JobStatus::Paused) busy = true;
+        if (job->status() == JobStatus::Failed || job->status() == JobStatus::Cancelled)
+            error = job->errorMessage().isEmpty() ? QStringLiteral("Conversion cancelled.") : job->errorMessage();
+        if (job->status() == JobStatus::Completed) results.append(job->outputPath());
+    }
+    m_progress->setRange(0, 100);
+    m_progress->setValue(progress / int(m_conversions.size()));
+    if (busy) {
+        m_state = QStringLiteral("converting");
+        m_status->setText(QStringLiteral("Converting to %1 · %2%").arg(m_outputFormat->currentData().toString().toUpper()).arg(m_progress->value()));
+        updateActions();
+        emit stateChanged();
+        return;
+    }
+    if (!error.isEmpty() || m_conversionCancelled) {
+        m_state = m_conversionCancelled ? QStringLiteral("cancelled") : QStringLiteral("error");
+        m_status->setText(m_conversionCancelled ? QStringLiteral("Conversion cancelled. The downloaded file is available.") : QStringLiteral("Conversion failed. The downloaded file is available.\n%1").arg(error));
+        updateActions();
+        emit stateChanged();
+        return;
+    }
+    if (m_state == QStringLiteral("done")) return;
+    m_state = QStringLiteral("done");
+    m_path = results.size() == 1 ? results.first() : QFileInfo(results.first()).absolutePath();
+    m_status->setText(QStringLiteral("Converted · %1 file(s) · %2").arg(results.size()).arg(m_outputFormat->currentData().toString().toUpper()));
+    if (m_request.value(QStringLiteral("autoImport")).toBool()) {
+        for (const auto& path : results)
+            if (lf::MediaImportService::isVideoFile(path)) emit importRequested(path);
+    }
+    updateActions();
+    emit stateChanged();
+}
+
+DownloadsView::DownloadsView(magnify::ui::MainWindow& converter, QWidget* parent) : QWidget(parent), m_converter(&converter)
 {
     auto* outer = new QVBoxLayout(this);
     outer->setContentsMargins(0, 0, 0, 0);
@@ -239,16 +392,24 @@ DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
     layout->addWidget(preview);
     auto* options = new QHBoxLayout;
     m_format = new QComboBox(body);
-    m_format->addItems({QStringLiteral("Video · best available"), QStringLiteral("Audio · MP3")});
-    m_format->setCurrentIndex(m_settings.value(QStringLiteral("suite/format"), 0).toInt());
+    m_format->setObjectName(QStringLiteral("downloadOutputFormat"));
+    populateConversionFormats(m_format);
+    const QString preferredFormat = m_settings.value(QStringLiteral("suite/conversionFormat"),
+        m_settings.value(QStringLiteral("suite/format"), 0).toInt() == 1 ? QStringLiteral("mp3") : QString()).toString();
+    m_format->setCurrentIndex(qMax(0, m_format->findData(preferredFormat)));
     m_quality = new QComboBox(body);
     m_quality->addItem(QStringLiteral("Best quality"), 0);
     m_playlist = new QCheckBox(QStringLiteral("Download the entire playlist"), body);
+    options->addWidget(new QLabel(QStringLiteral("Convert to"), body));
     options->addWidget(m_format);
     options->addWidget(m_quality);
     options->addWidget(m_playlist);
     options->addStretch();
     layout->addLayout(options);
+    auto* conversionHint = new QLabel(QStringLiteral("Output format: the integrated converter runs after download. Images use the first frame; the original file is kept."), body);
+    conversionHint->setWordWrap(true);
+    conversionHint->setProperty("muted", true);
+    layout->addWidget(conversionHint);
     auto* destination = new QHBoxLayout;
     m_directory = new QLineEdit(m_settings.value(QStringLiteral("out_dir"), QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)).toString(), body);
     m_directory->setObjectName(QStringLiteral("downloadDirectory"));
@@ -305,8 +466,10 @@ DownloadsView::DownloadsView(QWidget* parent) : QWidget(parent)
         const QString path = QFileDialog::getExistingDirectory(this, QStringLiteral("Download folder"), m_directory->text());
         if (!path.isEmpty()) m_directory->setText(path);
     });
-    connect(m_format, &QComboBox::currentIndexChanged, this, [this](int index) { m_quality->setEnabled(index == 0); });
-    m_quality->setEnabled(m_format->currentIndex() == 0);
+    connect(m_format, &QComboBox::currentIndexChanged, this, [this] {
+        m_download->setText(m_format->currentData().toString().isEmpty() ? QStringLiteral("Download") : QStringLiteral("Download and convert"));
+    });
+    m_download->setText(m_format->currentData().toString().isEmpty() ? QStringLiteral("Download") : QStringLiteral("Download and convert"));
     connect(m_url, &QLineEdit::textChanged, this, [this] { m_download->setEnabled(!m_searchedUrl.isEmpty() && m_url->text().trimmed() == m_searchedUrl); });
     connect(m_search, &QPushButton::clicked, this, &DownloadsView::OnSearchCallback);
     connect(m_url, &QLineEdit::returnPressed, this, &DownloadsView::OnSearchCallback);
@@ -440,20 +603,20 @@ void DownloadsView::OnDownloadCallback()
         return;
     }
     m_settings.setValue(QStringLiteral("out_dir"), directory);
-    m_settings.setValue(QStringLiteral("suite/format"), m_format->currentIndex());
+    m_settings.setValue(QStringLiteral("suite/conversionFormat"), m_format->currentData());
     m_settings.setValue(QStringLiteral("suite/height"), m_quality->currentData());
     m_settings.setValue(QStringLiteral("suite/autoImport"), m_autoImport->isChecked());
     auto* card = new DownloadCard({
         {QStringLiteral("action"), QStringLiteral("download")}, {QStringLiteral("url"), m_searchedUrl},
         {QStringLiteral("title"), m_title->text()}, {QStringLiteral("directory"), directory},
-        {QStringLiteral("audio"), m_format->currentIndex() == 1}, {QStringLiteral("height"), m_quality->currentData().toInt()},
+        {QStringLiteral("audio"), false}, {QStringLiteral("height"), m_quality->currentData().toInt()},
+        {QStringLiteral("convertTo"), m_format->currentData().toString()},
         {QStringLiteral("cookies"), m_cookies->text().trimmed()},
-        {QStringLiteral("playlist"), m_playlist->isChecked()}, {QStringLiteral("autoImport"), m_autoImport->isChecked()}}, this);
+        {QStringLiteral("playlist"), m_playlist->isChecked()}, {QStringLiteral("autoImport"), m_autoImport->isChecked()}}, *m_converter, this);
     m_cards.append(card);
     m_jobs->addWidget(card);
     connect(card, &DownloadCard::stateChanged, this, &DownloadsView::OnQueueChangedCallback);
     connect(card, &DownloadCard::importRequested, this, &DownloadsView::importRequested);
-    connect(card, &DownloadCard::convertRequested, this, &DownloadsView::convertRequested);
     OnQueueChangedCallback();
 }
 
@@ -463,7 +626,7 @@ void DownloadsView::OnQueueChangedCallback()
     int active = 0;
     for (auto* card : m_cards) {
         if (card->active()) ++active;
-        if (card->active() && !card->queued()) ++running;
+        if (card->downloading()) ++running;
     }
     for (auto* card : m_cards) {
         if (running >= 3) break;

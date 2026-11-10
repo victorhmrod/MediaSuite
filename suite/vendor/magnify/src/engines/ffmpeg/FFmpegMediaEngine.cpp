@@ -151,6 +151,26 @@ QStringList FFmpegMediaEngine::buildArgsForJob(ConversionJob *job, const MediaPr
     }
 
     if (targetCategory == FormatCategory::Video) {
+        if (targetExt == QStringLiteral("webm")) {
+            builder.setVideoCodec(QStringLiteral("libvpx-vp9"));
+            builder.setAudioCodec(QStringLiteral("libopus"));
+            builder.setAudioBitrate(QStringLiteral("128k"));
+            if (params.contains(QStringLiteral("width")) && params.contains(QStringLiteral("height")))
+                builder.setResolution(params.value(QStringLiteral("width")).toInt(), params.value(QStringLiteral("height")).toInt());
+            return builder.build();
+        }
+        if (targetExt == QStringLiteral("wmv")) {
+            builder.setVideoCodec(QStringLiteral("wmv2"));
+            builder.setAudioCodec(QStringLiteral("wmav2"));
+            builder.setAudioBitrate(QStringLiteral("128k"));
+            return builder.build();
+        }
+        if (targetExt == QStringLiteral("flv") || targetExt == QStringLiteral("avi")) {
+            builder.setVideoCodec(targetExt == QStringLiteral("flv") ? QStringLiteral("flv") : QStringLiteral("mpeg4"));
+            builder.setAudioCodec(QStringLiteral("libmp3lame"));
+            builder.setAudioBitrate(QStringLiteral("128k"));
+            return builder.build();
+        }
         const QString sourceExt = job->sourceFormat().toLower();
         const bool sourceIsH264 = probeResult.videoCodec == QStringLiteral("h264");
         const bool sourceIsAac = probeResult.audioCodec == QStringLiteral("aac");
@@ -646,8 +666,10 @@ void FFmpegMediaEngine::startConversion(ConversionJob *job) {
         RunningJob running = it.value();
         m_runningJobs.erase(it);
         const QString errorText = QStringLiteral("Could not start ffmpeg: %1").arg(running.process->errorString());
-        running.job->setErrorMessage(errorText);
-        running.job->setStatus(JobStatus::Failed);
+        if (running.job->status() != JobStatus::Cancelled && running.job->status() != JobStatus::Queued) {
+            running.job->setErrorMessage(errorText);
+            running.job->setStatus(JobStatus::Failed);
+        }
         emit jobFinished(jobId, false, errorText);
         running.process->deleteLater();
     });
@@ -719,6 +741,13 @@ void FFmpegMediaEngine::handleProcessFinished(const QUuid &jobId, int exitCode, 
     }
     RunningJob running = it.value();
     m_runningJobs.erase(it);
+
+    if (running.job->status() == JobStatus::Cancelled || running.job->status() == JobStatus::Queued) {
+        // A retry can be queued while the cancelled process is still exiting.
+        running.process->deleteLater();
+        emit jobFinished(jobId, false, QStringLiteral("Cancelled"));
+        return;
+    }
 
     const bool success = (exitStatus == QProcess::NormalExit) && (exitCode == 0) &&
                           QFileInfo::exists(running.job->outputPath());

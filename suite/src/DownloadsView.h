@@ -5,6 +5,10 @@
 #include <QProcess>
 #include <QSettings>
 #include <QFrame>
+#include <QPointer>
+
+namespace magnify::ui { class MainWindow; }
+namespace magnify::core { class ConversionJob; }
 
 class QCheckBox;
 class QComboBox;
@@ -17,18 +21,25 @@ class QVBoxLayout;
 class DownloadCard : public QFrame {
     Q_OBJECT
 public:
-    explicit DownloadCard(QJsonObject request, QWidget* parent = nullptr);
+    DownloadCard(QJsonObject request, magnify::ui::MainWindow& converter, QWidget* parent = nullptr);
     ~DownloadCard() override;
     bool active() const;
     bool queued() const;
+    bool downloading() const;
     void start();
     void cancel();
 signals:
     void stateChanged();
     void importRequested(QString path);
-    void convertRequested(QString path);
 private:
     void OnReadyReadCallback();
+    void OnConvertCallback();
+    void OnConversionChangedCallback();
+    void updateActions();
+    QPointer<magnify::ui::MainWindow> m_converter;
+    QList<QPointer<magnify::core::ConversionJob>> m_conversions;
+    QStringList m_downloadPaths;
+    bool m_conversionCancelled = false;
     QJsonObject m_request;
     QProcess m_process;
     QByteArray m_buffer;
@@ -42,24 +53,25 @@ private:
     QPushButton* m_folder;
     QPushButton* m_import;
     QPushButton* m_convert;
+    QComboBox* m_outputFormat;
 };
 
 class DownloadsView : public QWidget {
     Q_OBJECT
 public:
-    explicit DownloadsView(QWidget* parent = nullptr);
+    DownloadsView(magnify::ui::MainWindow& converter, QWidget* parent = nullptr);
     ~DownloadsView() override;
     bool hasActiveDownloads() const;
     void cancelAll();
 signals:
     void importRequested(QString path);
-    void convertRequested(QString path);
 private:
     void OnSearchCallback();
     void OnInfoReadyReadCallback();
     void OnDownloadCallback();
     void OnQueueChangedCallback();
     QSettings m_settings{qEnvironmentVariable("MEDIA_SUITE_SETTINGS_ORGANIZATION", "YTDownloader"), QStringLiteral("YTDownloader")};
+    QPointer<magnify::ui::MainWindow> m_converter;
     QProcess m_probe;
     QByteArray m_probeBuffer;
     QNetworkAccessManager m_network;
