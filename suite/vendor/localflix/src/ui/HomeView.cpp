@@ -32,14 +32,17 @@ HomeView::HomeView(ApplicationController& app, LibraryActions* actions, QWidget*
     auto* wl = new QVBoxLayout(welcome);
     wl->setContentsMargins(36, 32, 36, 32);
     wl->setSpacing(10);
-    auto* wt = new QLabel(QStringLiteral("Welcome to Media Suite"), welcome);
+    auto* eyebrow = new QLabel(QStringLiteral("YOUR MEDIA. YOUR WORKSPACE."), welcome);
+    eyebrow->setObjectName(QStringLiteral("NavSection"));
+    wl->addWidget(eyebrow);
+    auto* wt = new QLabel(QStringLiteral("Every file. One place."), welcome);
     wt->setObjectName(QStringLiteral("Heading"));
     auto* wd = new QLabel(QStringLiteral("Download videos, transform files, and organize your library. "
                                          "Your videos stay where they are, and the player remembers where you stopped."),
                           welcome);
     wd->setWordWrap(true);
     wd->setProperty("muted", true);
-    auto* create = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("Create a show"), welcome);
+    auto* create = new QPushButton(Theme::icon(Icon::Add, Colors::background, 18), QStringLiteral("Create a show"), welcome);
     create->setProperty("variant", QStringLiteral("primary"));
     auto* folder = new QPushButton(Theme::icon(Icon::Folder, Colors::text, 18), QStringLiteral("Import folder as show"), welcome);
     auto* movies = new QPushButton(Theme::icon(Icon::Movie, Colors::text, 18), QStringLiteral("Add videos"), welcome);

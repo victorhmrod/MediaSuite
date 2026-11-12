@@ -42,7 +42,7 @@ ContinueCard::ContinueCard(QWidget* parent) : QFrame(parent)
     m_last = new QLabel(this);
     m_last->setProperty("muted", true);
 
-    m_resume = new QPushButton(Theme::icon(Icon::Play, Qt::white, 18), QStringLiteral("Resume"), this);
+    m_resume = new QPushButton(Theme::icon(Icon::Play, Colors::background, 18), QStringLiteral("Resume"), this);
     m_resume->setProperty("variant", QStringLiteral("primary"));
     m_resume->setObjectName(QStringLiteral("ResumeButton"));
     m_resume->setCursor(Qt::PointingHandCursor);
@@ -103,10 +103,10 @@ void ContinueCard::setData(const Data& d)
 
     if (it.missing) {
         m_resume->setText(QStringLiteral("Fix missing file"));
-        m_resume->setIcon(Theme::icon(Icon::Warning, Qt::white, 18));
+        m_resume->setIcon(Theme::icon(Icon::Warning, Colors::background, 18));
     } else {
         m_resume->setText(it.positionMs > 0 ? QStringLiteral("Resume") : QStringLiteral("Play"));
-        m_resume->setIcon(Theme::icon(Icon::Play, Qt::white, 18));
+        m_resume->setIcon(Theme::icon(Icon::Play, Colors::background, 18));
     }
 }
 

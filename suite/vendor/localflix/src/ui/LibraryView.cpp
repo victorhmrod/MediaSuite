@@ -32,7 +32,7 @@ LibraryView::LibraryView(ApplicationController& app, LibraryActions* actions, Mo
     m_toolbar = new QHBoxLayout;
     m_toolbar->setSpacing(10);
     if (mode == Mode::Shows) {
-        auto* create = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("New show"), this);
+        auto* create = new QPushButton(Theme::icon(Icon::Add, Colors::background, 18), QStringLiteral("New show"), this);
         create->setObjectName(QStringLiteral("NewShowButton"));
         create->setProperty("variant", QStringLiteral("primary"));
         auto* folder = new QPushButton(Theme::icon(Icon::Folder, Colors::text, 18), QStringLiteral("Import folder as show"), this);
@@ -41,7 +41,7 @@ LibraryView::LibraryView(ApplicationController& app, LibraryActions* actions, Mo
         m_toolbar->addWidget(create);
         m_toolbar->addWidget(folder);
     } else if (mode == Mode::Movies) {
-        auto* add = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("Add videos"), this);
+        auto* add = new QPushButton(Theme::icon(Icon::Add, Colors::background, 18), QStringLiteral("Add videos"), this);
         add->setObjectName(QStringLiteral("AddMoviesButton"));
         add->setProperty("variant", QStringLiteral("primary"));
         auto* folder = new QPushButton(Theme::icon(Icon::Folder, Colors::text, 18), QStringLiteral("Add folder"), this);

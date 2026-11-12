@@ -49,14 +49,14 @@ enum class Icon {
 };
 
 namespace Colors {
-inline const QColor background(0x0f, 0x11, 0x15);
-inline const QColor surface(0x17, 0x1a, 0x21);
-inline const QColor surfaceRaised(0x1f, 0x23, 0x2c);
-inline const QColor border(0x2b, 0x30, 0x3b);
-inline const QColor text(0xe8, 0xea, 0xf0);
-inline const QColor textMuted(0x9a, 0xa3, 0xb2);
-inline const QColor accent(0x5b, 0x8d, 0xef);
-inline const QColor accentHover(0x74, 0x9f, 0xf3);
+inline const QColor background(0x0b, 0x0e, 0x13);
+inline const QColor surface(0x12, 0x17, 0x20);
+inline const QColor surfaceRaised(0x1b, 0x23, 0x2f);
+inline const QColor border(0x30, 0x3c, 0x4d);
+inline const QColor text(0xee, 0xf4, 0xfc);
+inline const QColor textMuted(0x9c, 0xac, 0xc1);
+inline const QColor accent(0x6b, 0xc7, 0xff);
+inline const QColor accentHover(0xa3, 0xde, 0xff);
 inline const QColor success(0x3e, 0xcf, 0x8e);
 inline const QColor warning(0xf5, 0xa5, 0x24);
 inline const QColor danger(0xef, 0x53, 0x50);
@@ -64,7 +64,7 @@ inline const QColor danger(0xef, 0x53, 0x50);
 
 namespace Theme {
 
-// Fusion style + dark palette + application stylesheet.
+// Dark palette, chamfered buttons and animated interaction states.
 void apply(QApplication& app);
 
 // Vector icon (drawn from embedded SVG paths) tinted with `color`.

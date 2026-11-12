@@ -13,7 +13,6 @@ namespace lf::ui {
 
 namespace {
 constexpr int kTextHeight = 62;
-constexpr int kRadius = 12;
 }  // namespace
 
 PosterCard::PosterCard(QWidget* parent, const QSize& posterSize) : QWidget(parent), m_posterSize(posterSize)
@@ -56,7 +55,13 @@ void PosterCard::paintEvent(QPaintEvent*)
 
     const QRect pr = posterRect();
     QPainterPath clip;
-    clip.addRoundedRect(pr, kRadius, kRadius);
+    clip.moveTo(pr.left(), pr.top());
+    clip.lineTo(pr.right() - 12, pr.top());
+    clip.lineTo(pr.right(), pr.top() + 12);
+    clip.lineTo(pr.right(), pr.bottom());
+    clip.lineTo(pr.left() + 12, pr.bottom());
+    clip.lineTo(pr.left(), pr.bottom() - 12);
+    clip.closeSubpath();
 
     p.save();
     p.setClipPath(clip);
@@ -69,7 +74,7 @@ void PosterCard::paintEvent(QPaintEvent*)
         const QRect circle(pr.center().x() - d / 2, pr.center().y() - d / 2, d, d);
         p.setPen(Qt::NoPen);
         p.setBrush(QColor(255, 255, 255, 230));
-        p.drawEllipse(circle);
+        p.drawRect(circle);
         p.drawPixmap(circle.adjusted(13, 13, -13, -13).topLeft(), Theme::iconPixmap(Icon::Play, QColor(0x14, 0x16, 0x1b), 26, devicePixelRatioF()));
     }
 
@@ -99,14 +104,14 @@ void PosterCard::paintEvent(QPaintEvent*)
         const QRect mb = menuButtonRect();
         p.setPen(Qt::NoPen);
         p.setBrush(m_overMenu ? QColor(255, 255, 255, 60) : QColor(0, 0, 0, 150));
-        p.drawEllipse(mb);
+        p.drawRect(mb);
         p.drawPixmap(mb.adjusted(2, 2, -2, -2).topLeft(), Theme::iconPixmap(Icon::More, Qt::white, 24, devicePixelRatioF()));
     }
 
     // border
     p.setBrush(Qt::NoBrush);
     p.setPen(QPen(hasFocus() ? Colors::accent : (m_hover ? QColor(255, 255, 255, 70) : QColor(255, 255, 255, 22)), hasFocus() ? 2 : 1));
-    p.drawRoundedRect(QRectF(pr).adjusted(0.5, 0.5, -0.5, -0.5), kRadius, kRadius);
+    p.drawPath(clip);
 
     // text
     const QRect textArea(pr.left() + 2, pr.bottom() + 8, pr.width() - 4, kTextHeight - 8);

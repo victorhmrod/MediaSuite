@@ -65,7 +65,7 @@ Select **Install update** when ready, then confirm closing Media Suite. Active
 download or conversion jobs must finish or be cancelled first. The installer
 retains the existing per-user/all-user installation location when recognized;
 Windows may request elevation for an all-user installation. Discovery never
-installs an update without confirmation. Install version 1.3.0 once to enable
+installs an update without confirmation. Install version 1.3.0 or later once to enable
 this feature for subsequent releases. This updates the application package,
 including its bundled worker; it does not update external tools independently.
 
@@ -140,11 +140,11 @@ installation, application startup, and uninstallation in an isolated directory.
 It refuses to run the installation test over an existing Media Suite install.
 `MEDIA_SUITE_ISCC` selects a custom Inno Setup compiler.
 
-Outputs for version 1.3.0:
+Outputs for version 1.4.0:
 
-- `dist/MediaSuite-1.3.0/MediaSuite.exe`
-- `dist/MediaSuite-1.3.0-win64.zip`
-- `dist/MediaSuite-1.3.0-setup.exe`
+- `dist/MediaSuite-1.4.0/MediaSuite.exe`
+- `dist/MediaSuite-1.4.0-win64.zip`
+- `dist/MediaSuite-1.4.0-setup.exe`
 - `dist/SHA256SUMS.txt`
 
 `package-suite.ps1` creates only the application folder and portable ZIP.

@@ -85,17 +85,32 @@ void MainWindow::buildUi()
     // ---- sidebar
     m_sidebar = new QFrame(central);
     m_sidebar->setObjectName(QStringLiteral("Sidebar"));
-    m_sidebar->setFixedWidth(236);
+    m_sidebar->setFixedWidth(252);
     auto* sl = new QVBoxLayout(m_sidebar);
-    sl->setContentsMargins(14, 22, 14, 16);
-    sl->setSpacing(4);
+    sl->setContentsMargins(16, 28, 16, 20);
+    sl->setSpacing(6);
+    auto* brandRow = new QHBoxLayout;
+    brandRow->setSpacing(12);
+    auto* mark = new QLabel(m_sidebar);
+    mark->setPixmap(Theme::iconPixmap(Icon::Movie, QColor(11, 21, 32), 26));
+    mark->setObjectName(QStringLiteral("BrandMark"));
+    mark->setAlignment(Qt::AlignCenter);
+    mark->setFixedSize(42, 42);
+    brandRow->addWidget(mark);
     auto* brand = new QLabel(QStringLiteral("Media Suite"), m_sidebar);
     brand->setObjectName(QStringLiteral("Brand"));
     auto* tag = new QLabel(QStringLiteral("Download. Transform. Watch."), m_sidebar);
-    tag->setProperty("muted", true);
-    sl->addWidget(brand);
-    sl->addWidget(tag);
-    sl->addSpacing(22);
+    tag->setObjectName(QStringLiteral("BrandTag"));
+    auto* brandText = new QVBoxLayout;
+    brandText->setSpacing(0);
+    brandText->addWidget(brand);
+    brandText->addWidget(tag);
+    brandRow->addLayout(brandText);
+    sl->addLayout(brandRow);
+    sl->addSpacing(24);
+    auto* libraryLabel = new QLabel(QStringLiteral("LIBRARY"), m_sidebar);
+    libraryLabel->setObjectName(QStringLiteral("NavSection"));
+    sl->addWidget(libraryLabel);
 
     m_navGroup = new QButtonGroup(this);
     m_navGroup->setExclusive(true);
@@ -122,7 +137,7 @@ void MainWindow::buildUi()
     }
     sl->addSpacing(14);
     auto* toolsLabel = new QLabel(QStringLiteral("TOOLS"), m_sidebar);
-    toolsLabel->setProperty("muted", true);
+    toolsLabel->setObjectName(QStringLiteral("NavSection"));
     sl->addWidget(toolsLabel);
     m_downloadNav = new QToolButton(m_sidebar);
     m_toolsNav = new QToolButton(m_sidebar);
@@ -143,7 +158,7 @@ void MainWindow::buildUi()
     m_toolsNav->setIcon(Theme::icon(Icon::Edit));
     sl->addStretch();
     auto* version = new QLabel(QStringLiteral("v%1 · Media Suite").arg(QCoreApplication::applicationVersion()), m_sidebar);
-    version->setProperty("muted", true);
+    version->setObjectName(QStringLiteral("Version"));
     sl->addWidget(version);
 
     // ---- pages

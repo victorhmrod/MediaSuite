@@ -38,7 +38,7 @@ QLabel *makePreviewSlot(QWidget *parent) {
     label->setAlignment(Qt::AlignCenter);
     label->setWordWrap(true);
     label->setStyleSheet(
-        QStringLiteral("background-color: #171a21; border: 1px solid #2b303b; border-radius: 4px; color: #9aa3b2;"));
+        QStringLiteral("background-color: #171a21; border: 1px solid #2b303b; border-radius: 0px; color: #9aa3b2;"));
     return label;
 }
 } // namespace
@@ -50,14 +50,13 @@ ConvertDialog::ConvertDialog(const QString &fileName, FormatCategory sourceCateg
     setModal(true);
     setMinimumWidth(460);
     setStyleSheet(R"(
-        QDialog { background-color: #0f1115; color: #e8eaf0; }
+        QDialog { background-color: #0b0e13; color: #eef4fc; }
         QLabel#title { font-size: 15px; font-weight: 600; color: #ffffff; }
         QLabel#section { color: #9aa3b2; font-size: 11px; font-weight: 600; margin-top: 6px; }
         QPushButton[class="formatButton"] {
-            background-color: #1f232c; border: 1px solid #2b303b; border-radius: 6px;
+            background: transparent; border: 1px solid transparent; border-radius: 0px;
             padding: 10px; font-weight: 600; min-width: 64px;
         }
-        QPushButton[class="formatButton"]:hover { background-color: #5b8def; border-color: #5b8def; color: white; }
     )");
 
     m_useConfirmFlow =

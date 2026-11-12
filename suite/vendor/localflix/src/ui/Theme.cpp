@@ -1,6 +1,14 @@
 #include "Theme.h"
 
 #include <QApplication>
+#include <QAbstractButton>
+#include <QEvent>
+#include <QPushButton>
+#include <QToolButton>
+#include <QProxyStyle>
+#include <QStyleOptionButton>
+#include <QStyleOptionToolButton>
+#include <QVariantAnimation>
 #include <QCryptographicHash>
 #include <QFileInfo>
 #include <QFont>
@@ -22,6 +30,189 @@
 namespace lf::ui {
 
 namespace {
+
+class ButtonInteraction final : public QObject {
+public:
+    ButtonInteraction(QAbstractButton* button, QStyle* style) : QObject(button), m_button(button), m_style(style)
+    {
+        button->setAttribute(Qt::WA_Hover);
+        button->installEventFilter(this);
+        m_hover.setDuration(150);
+        m_press.setDuration(100);
+        m_hover.setEasingCurve(QEasingCurve::OutCubic);
+        m_press.setEasingCurve(QEasingCurve::OutCubic);
+        connect(&m_hover, &QVariantAnimation::valueChanged, button, qOverload<>(&QWidget::update));
+        connect(&m_press, &QVariantAnimation::valueChanged, button, qOverload<>(&QWidget::update));
+        connect(button, &QAbstractButton::pressed, this, &ButtonInteraction::OnStateChangedCallback);
+        connect(button, &QAbstractButton::released, this, &ButtonInteraction::OnStateChangedCallback);
+    }
+
+protected:
+    bool eventFilter(QObject*, QEvent* event) override
+    {
+        switch (event->type()) {
+        case QEvent::Enter:
+            m_inside = true;
+            OnStateChangedCallback();
+            break;
+        case QEvent::Leave:
+        case QEvent::Hide:
+            m_inside = false;
+            OnStateChangedCallback();
+            break;
+        case QEvent::FocusIn:
+        case QEvent::FocusOut:
+        case QEvent::EnabledChange:
+            OnStateChangedCallback();
+            break;
+        case QEvent::Paint:
+            OnPaintCallback();
+            return true;
+        default:
+            break;
+        }
+        return false;
+    }
+
+private:
+    void OnStateChangedCallback()
+    {
+        m_hover.stop();
+        m_hover.setStartValue(m_hover.currentValue().toReal());
+        m_hover.setEndValue(m_button->isEnabled() && (m_inside || m_button->hasFocus()) ? 1.0 : 0.0);
+        m_hover.start();
+        m_press.stop();
+        m_press.setStartValue(m_press.currentValue().toReal());
+        m_press.setEndValue(m_button->isEnabled() && m_button->isDown() ? 1.0 : 0.0);
+        m_press.start();
+    }
+
+    void OnPaintCallback()
+    {
+        const bool enabled = m_button->isEnabled();
+        const bool nav = m_button->property("nav").toBool();
+        const bool checked = m_button->isChecked();
+        const QString variant = m_button->property("variant").toString();
+        const qreal hover = m_hover.currentValue().toReal();
+        const qreal press = m_press.currentValue().toReal();
+        QColor fill = Colors::surfaceRaised;
+        QColor border = Colors::border;
+        QColor ink = Colors::text;
+        if (nav || variant == QStringLiteral("ghost") || m_button->property("iconButton").toBool()) {
+            fill = QColor(107, 199, 255, checked ? 28 : 0);
+            border = checked ? Colors::accent : QColor(107, 199, 255, 0);
+        }
+        if (variant == QStringLiteral("primary")) {
+            fill = Colors::accent;
+            border = Colors::accent;
+            ink = QColor(11, 21, 32);
+        }
+        if (variant == QStringLiteral("danger")) {
+            fill = QColor(239, 83, 80, 12);
+            border = Colors::danger;
+            ink = Colors::danger;
+        }
+        if (checked) ink = Colors::accentHover;
+        if (!enabled) {
+            fill = QColor(23, 30, 40);
+            border = QColor(41, 52, 67);
+            ink = QColor(108, 123, 144);
+        }
+        if (enabled) {
+            fill = fill.lighter(100 + int(hover * 22));
+            fill.setAlpha(qMin(255, fill.alpha() + int(hover * 20)));
+            if (hover > 0) border = QColor::fromRgbF(
+                border.redF() + (Colors::accent.redF() - border.redF()) * hover,
+                border.greenF() + (Colors::accent.greenF() - border.greenF()) * hover,
+                border.blueF() + (Colors::accent.blueF() - border.blueF()) * hover,
+                border.alphaF() + (1.0 - border.alphaF()) * hover);
+            fill = fill.darker(100 + int(press * 20));
+        }
+        QPainter painter(m_button);
+        painter.setRenderHint(QPainter::Antialiasing);
+        const QRectF r = QRectF(m_button->rect()).adjusted(0.75, 0.75, -0.75, -0.75);
+        const qreal cut = qMin(10.0, r.height() * 0.23);
+        QPainterPath shape;
+        shape.moveTo(r.left(), r.top());
+        shape.lineTo(r.right() - cut, r.top());
+        shape.lineTo(r.right(), r.top() + cut);
+        shape.lineTo(r.right(), r.bottom());
+        shape.lineTo(r.left() + cut, r.bottom());
+        shape.lineTo(r.left(), r.bottom() - cut);
+        shape.closeSubpath();
+        painter.setPen(QPen(border, m_button->hasFocus() && enabled ? 2.0 : 1.0));
+        painter.setBrush(fill);
+        painter.drawPath(shape);
+        if (nav && checked) {
+            painter.setPen(QPen(Colors::accent, 2));
+            painter.drawLine(QPointF(r.left() + 1, r.top() + 7), QPointF(r.left() + 1, r.bottom() - cut - 3));
+        }
+        painter.translate(0, press * 1.5);
+        if (auto* button = qobject_cast<QPushButton*>(m_button)) {
+            QStyleOptionButton option;
+            option.initFrom(button);
+            option.rect = button->rect().adjusted(12, 2, -12, -2);
+            option.text = button->text();
+            option.icon = button->icon();
+            option.iconSize = button->iconSize();
+            option.palette.setColor(QPalette::ButtonText, ink);
+            option.palette.setColor(QPalette::Disabled, QPalette::ButtonText, ink);
+            if (button->menu()) option.features |= QStyleOptionButton::HasMenu;
+            m_style->drawControl(QStyle::CE_PushButtonLabel, &option, &painter, button);
+            return;
+        }
+        auto* button = qobject_cast<QToolButton*>(m_button);
+        QStyleOptionToolButton option;
+        option.initFrom(button);
+        option.rect = button->rect().adjusted(nav ? 14 : 6, 2, -10, -2);
+        option.text = button->text();
+        option.icon = button->icon();
+        option.iconSize = button->iconSize();
+        option.font = button->font();
+        option.toolButtonStyle = button->toolButtonStyle();
+        option.arrowType = button->arrowType();
+        if (button->arrowType() != Qt::NoArrow) option.features |= QStyleOptionToolButton::Arrow;
+        option.palette.setColor(QPalette::ButtonText, ink);
+        option.palette.setColor(QPalette::Disabled, QPalette::ButtonText, ink);
+        if (nav) {
+            option.toolButtonStyle = Qt::ToolButtonTextBesideIcon;
+            const QPixmap icon = option.icon.pixmap(option.iconSize, enabled ? QIcon::Normal : QIcon::Disabled);
+            const int x = option.rect.left();
+            painter.drawPixmap(x, (button->height() - icon.height() / icon.devicePixelRatio()) / 2, icon);
+            painter.setPen(ink);
+            painter.drawText(option.rect.adjusted(option.iconSize.width() + 12, 0, 0, 0), Qt::AlignVCenter | Qt::AlignLeft | Qt::TextShowMnemonic, option.text.trimmed());
+            return;
+        }
+        m_style->drawControl(QStyle::CE_ToolButtonLabel, &option, &painter, button);
+        if (button->menu()) {
+            QStyleOption arrow;
+            arrow.initFrom(button);
+            arrow.rect = QRect(button->width() - 12, button->height() / 2 - 3, 8, 6);
+            arrow.palette.setColor(QPalette::ButtonText, ink);
+            m_style->drawPrimitive(QStyle::PE_IndicatorArrowDown, &arrow, &painter, button);
+        }
+    }
+
+    QAbstractButton* m_button;
+    QStyle* m_style;
+    QVariantAnimation m_hover;
+    QVariantAnimation m_press;
+    bool m_inside = false;
+};
+
+class SuiteStyle final : public QProxyStyle {
+public:
+    SuiteStyle() : QProxyStyle(QStyleFactory::create(QStringLiteral("Fusion"))) {}
+
+    void polish(QWidget* widget) override
+    {
+        QProxyStyle::polish(widget);
+        if (!qobject_cast<QPushButton*>(widget) && !qobject_cast<QToolButton*>(widget)) return;
+        if (widget->findChild<QObject*>(QStringLiteral("buttonInteraction"), Qt::FindDirectChildrenOnly)) return;
+        auto* interaction = new ButtonInteraction(qobject_cast<QAbstractButton*>(widget), baseStyle());
+        interaction->setObjectName(QStringLiteral("buttonInteraction"));
+    }
+};
 
 // Material Design icon paths (Apache License 2.0), 24x24 viewBox.
 const char* pathFor(Icon i)
@@ -91,39 +282,32 @@ QMainWindow, QDialog, QMessageBox, QStackedWidget { background: %bg%; }
 QLabel { background: transparent; }
 QToolTip { background: %raised%; color: %text%; border: 1px solid %border%; padding: 4px 8px; }
 
-QFrame#Sidebar { background: %surface%; border-right: 1px solid %border%; }
-QLabel#Brand { font-size: 17pt; font-weight: 700; letter-spacing: 0.5px; }
-QLabel#PageTitle { font-size: 20pt; font-weight: 700; }
+QFrame#Sidebar { background: #0e131b; border-right: 1px solid %border%; }
+QLabel#NavSection { color: %muted%; font-size: 8pt; font-weight: 600; letter-spacing: 2px; margin: 8px 12px; }
+QLabel#BrandTag { color: %muted%; font-size: 8pt; margin-top: 4px; }
+QLabel#BrandMark { background: %accent%; color: #0b1520; padding: 8px; font-size: 13pt; font-weight: 800; }
+QLabel#Version { color: %muted%; font-size: 8pt; border-top: 1px solid %border%; padding-top: 16px; }
+QLabel#Brand { font-size: 18pt; font-weight: 700; letter-spacing: -0.5px; }
+QLabel#PageTitle { font-size: 25pt; font-weight: 600; letter-spacing: -0.6px; }
 QLabel#SectionTitle { font-size: 13pt; font-weight: 600; }
 QLabel#Muted, QLabel[muted="true"] { color: %muted%; }
 QLabel#Heading { font-size: 22pt; font-weight: 700; }
 
+/* Button surfaces and labels are painted together so the clipped corners and
+   animations remain consistent on every page, including converter dialogs. */
 QPushButton, QToolButton {
-    background: %raised%; border: 1px solid %border%; border-radius: 8px; padding: 7px 16px;
+    background: transparent; border: 1px solid transparent; border-radius: 0;
+    padding: 8px 18px; font-weight: 600;
 }
-QPushButton:hover, QToolButton:hover { background: #272c37; border-color: #3a4150; }
-QPushButton:pressed, QToolButton:pressed { background: #1a1e26; }
-QPushButton:disabled, QToolButton:disabled { color: #5d6573; background: %surface%; border-color: %border%; }
-QPushButton:focus { border-color: %accent%; }
-QPushButton[variant="primary"] { background: %accent%; border-color: %accent%; color: #ffffff; font-weight: 600; }
-QPushButton[variant="primary"]:hover { background: %accentHover%; border-color: %accentHover%; }
-QPushButton[variant="primary"]:disabled { background: #2a3a5c; border-color: #2a3a5c; color: #7e8aa3; }
-QPushButton[variant="ghost"], QToolButton[variant="ghost"] { background: transparent; border-color: transparent; }
-QPushButton[variant="ghost"]:hover, QToolButton[variant="ghost"]:hover { background: rgba(255,255,255,0.08); }
-QPushButton[variant="danger"] { background: transparent; border-color: %danger%; color: %danger%; }
-QPushButton[variant="danger"]:hover { background: rgba(239,83,80,0.15); }
 QToolButton[nav="true"] {
-    background: transparent; border: none; border-radius: 10px; padding: 10px 14px; text-align: left; font-size: 11pt;
+    padding: 12px 14px; text-align: left; font-size: 10pt;
 }
-QToolButton[nav="true"]:hover { background: rgba(255,255,255,0.06); }
-QToolButton[nav="true"]:checked { background: rgba(91,141,239,0.18); color: %accentHover%; font-weight: 600; }
-QToolButton[iconButton="true"] { background: transparent; border: none; border-radius: 18px; padding: 6px; }
-QToolButton[iconButton="true"]:hover { background: rgba(255,255,255,0.12); }
-QToolButton[iconButton="true"]:pressed { background: rgba(255,255,255,0.20); }
+QToolButton[iconButton="true"] { padding: 6px; }
 QToolButton::menu-indicator { image: none; width: 0px; }
+QPushButton#dropZone { padding: 24px; font-size: 12pt; }
 
 QLineEdit, QPlainTextEdit, QTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {
-    background: %surface%; border: 1px solid %border%; border-radius: 8px; padding: 6px 10px;
+    background: #0e141e; border: 1px solid %border%; border-radius: 0px; padding: 9px 12px;
     selection-background-color: %accent%; selection-color: #ffffff;
 }
 QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus { border-color: %accent%; }
@@ -133,58 +317,58 @@ QComboBox QAbstractItemView { background: %raised%; border: 1px solid %border%; 
 QSpinBox::up-button, QSpinBox::down-button, QDoubleSpinBox::up-button, QDoubleSpinBox::down-button { width: 18px; border: none; background: transparent; }
 
 QCheckBox, QRadioButton { spacing: 10px; background: transparent; }
-QCheckBox::indicator { width: 18px; height: 18px; border-radius: 5px; border: 1px solid #4a5160; background: %surface%; }
+QCheckBox::indicator { width: 18px; height: 18px; border-radius: 0px; border: 1px solid #4a5160; background: %surface%; }
 QCheckBox::indicator:hover { border-color: %accent%; }
 QCheckBox::indicator:checked { background: %accent%; border-color: %accent%; image: url(:/icons/check.svg); }
 QCheckBox::indicator:disabled { background: %bg%; border-color: %border%; }
 
-QSlider::groove:horizontal { height: 4px; background: #3a4050; border-radius: 2px; }
-QSlider::sub-page:horizontal { background: %accent%; border-radius: 2px; }
-QSlider::handle:horizontal { background: #ffffff; width: 12px; height: 12px; margin: -4px 0; border-radius: 6px; }
+QSlider::groove:horizontal { height: 4px; background: #3a4050; border-radius: 0px; }
+QSlider::sub-page:horizontal { background: %accent%; border-radius: 0px; }
+QSlider::handle:horizontal { background: #ffffff; width: 12px; height: 12px; margin: -4px 0; border-radius: 0px; }
 QSlider::handle:horizontal:hover { background: %accentHover%; }
-QSlider[seek="true"]::groove:horizontal { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.28); }
-QSlider[seek="true"]::sub-page:horizontal { border-radius: 3px; }
-QSlider[seek="true"]::handle:horizontal { width: 14px; height: 14px; margin: -4px 0; border-radius: 7px; }
+QSlider[seek="true"]::groove:horizontal { height: 6px; border-radius: 0px; background: rgba(255,255,255,0.28); }
+QSlider[seek="true"]::sub-page:horizontal { border-radius: 0px; }
+QSlider[seek="true"]::handle:horizontal { width: 14px; height: 14px; margin: -4px 0; border-radius: 0px; }
 
-QProgressBar { background: #2a2f3a; border: none; border-radius: 3px; max-height: 6px; min-height: 6px; text-align: center; }
-QProgressBar::chunk { background: %accent%; border-radius: 3px; }
+QProgressBar { background: #2a2f3a; border: none; border-radius: 0px; max-height: 6px; min-height: 6px; text-align: center; }
+QProgressBar::chunk { background: %accent%; border-radius: 0px; }
 
 QScrollArea { border: none; background: transparent; }
 QScrollBar:vertical { background: transparent; width: 12px; margin: 2px; }
-QScrollBar::handle:vertical { background: #353b48; border-radius: 4px; min-height: 36px; }
+QScrollBar::handle:vertical { background: #353b48; border-radius: 0px; min-height: 36px; }
 QScrollBar::handle:vertical:hover { background: #4a5263; }
 QScrollBar:horizontal { background: transparent; height: 12px; margin: 2px; }
-QScrollBar::handle:horizontal { background: #353b48; border-radius: 4px; min-width: 36px; }
+QScrollBar::handle:horizontal { background: #353b48; border-radius: 0px; min-width: 36px; }
 QScrollBar::handle:horizontal:hover { background: #4a5263; }
 QScrollBar::add-line, QScrollBar::sub-line, QScrollBar::add-page, QScrollBar::sub-page { background: none; border: none; width: 0; height: 0; }
 
 QTreeView, QTreeWidget, QListView, QListWidget, QTableView {
-    background: %surface%; border: 1px solid %border%; border-radius: 10px; outline: none; padding: 4px;
+    background: %surface%; border: 1px solid %border%; border-radius: 0px; outline: none; padding: 4px;
     alternate-background-color: #1a1d25;
 }
 QTreeView::item { padding: 5px 4px; border-radius: 0px; }
-QListView::item { padding: 5px 4px; border-radius: 6px; }
+QListView::item { padding: 5px 4px; border-radius: 0px; }
 QTreeView::item:hover, QListView::item:hover { background: rgba(255,255,255,0.05); }
-QTreeView::item:selected, QListView::item:selected { background: rgba(91,141,239,0.28); color: %text%; }
+QTreeView::item:selected, QListView::item:selected { background: rgba(107,199,255,0.16); color: %text%; }
 QTreeView::branch { background: transparent; }
 QHeaderView::section { background: %surface%; color: %muted%; border: none; border-bottom: 1px solid %border%; padding: 6px 8px; font-weight: 600; }
 
-QMenu { background: %raised%; border: 1px solid %border%; border-radius: 10px; padding: 6px; }
-QMenu::item { padding: 7px 26px 7px 14px; border-radius: 6px; }
-QMenu::item:selected { background: rgba(91,141,239,0.35); }
+QMenu { background: %raised%; border: 1px solid %border%; border-radius: 0px; padding: 6px; }
+QMenu::item { padding: 7px 26px 7px 14px; border-radius: 0px; }
+QMenu::item:selected { background: rgba(107,199,255,0.20); }
 QMenu::item:disabled { color: #626a78; }
 QMenu::separator { height: 1px; background: %border%; margin: 5px 8px; }
 QMenu::indicator { width: 14px; height: 14px; }
 
-QGroupBox { border: 1px solid %border%; border-radius: 12px; margin-top: 14px; padding: 18px 14px 12px 14px; background: %surface%; }
+QGroupBox { border: 1px solid %border%; border-radius: 0px; margin-top: 14px; padding: 18px 14px 12px 14px; background: %surface%; }
 QGroupBox::title { subcontrol-origin: margin; left: 14px; padding: 0 6px; color: %muted%; font-weight: 600; }
 QSplitter::handle { background: transparent; }
 
-QFrame#Card { background: %surface%; border: 1px solid %border%; border-radius: 14px; }
-QFrame#Overlay { background: rgba(15,17,21,0.88); border: 1px solid rgba(255,255,255,0.10); border-radius: 16px; }
+QFrame#Card { background: %surface%; border: 1px solid %border%; border-left: 2px solid %accent%; border-radius: 0px; }
+QFrame#Overlay { background: rgba(15,17,21,0.88); border: 1px solid rgba(255,255,255,0.10); border-radius: 0px; }
 QFrame#ControlBar { background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 rgba(0,0,0,0), stop:1 rgba(0,0,0,0.82)); border: none; }
 QFrame#TopBar { background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 rgba(0,0,0,0.9), stop:1 rgba(0,0,0,0)); border: none; }
-QLabel#Toast { background: %raised%; border: 1px solid %border%; border-radius: 12px; padding: 12px 18px; }
+QLabel#Toast { background: %raised%; border: 1px solid %border%; border-radius: 0px; padding: 12px 18px; }
 )css");
     css.replace(QStringLiteral("%bg%"), c(Colors::background));
     css.replace(QStringLiteral("%surface%"), c(Colors::surface));
@@ -227,7 +411,7 @@ namespace Theme {
 
 void apply(QApplication& app)
 {
-    app.setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
+    app.setStyle(new SuiteStyle);
 
     QFont f = app.font();
     f.setFamily(QStringLiteral("Segoe UI"));
@@ -345,6 +529,9 @@ void useDarkTitleBar(QWidget* topLevel)
 #ifdef _WIN32
     if (!topLevel) return;
     const HWND hwnd = reinterpret_cast<HWND>(topLevel->winId());
+    // Keep the native window frame aligned with the geometric controls.
+    const DWORD corners = 1;  // DWMWCP_DONOTROUND, ignored on Windows 10.
+    DwmSetWindowAttribute(hwnd, 33, &corners, sizeof(corners));
     const BOOL on = TRUE;
     // 20 = DWMWA_USE_IMMERSIVE_DARK_MODE (19 on early Windows 10 builds)
     if (FAILED(DwmSetWindowAttribute(hwnd, 20, &on, sizeof(on)))) DwmSetWindowAttribute(hwnd, 19, &on, sizeof(on));

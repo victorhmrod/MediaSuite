@@ -9,6 +9,8 @@
 #include "UpdatePanel.h"
 
 #include <QApplication>
+#include <QEnterEvent>
+#include <QMenu>
 #include <QFile>
 #include <QComboBox>
 #include <QCheckBox>
@@ -35,6 +37,65 @@
 class SuiteTest : public QObject {
     Q_OBJECT
 private slots:
+    void chamferedButtonInteractions()
+    {
+        QWidget host;
+        host.resize(360, 160);
+        host.setAutoFillBackground(true);
+        QPushButton button(&host);
+        button.setGeometry(24, 24, 180, 44);
+        button.setFocusPolicy(Qt::NoFocus);
+        host.show();
+        QTest::qWait(200);
+        QEvent leave(QEvent::Leave);
+        QApplication::sendEvent(&button, &leave);
+        QTest::qWait(180);
+        const QImage idle = button.grab().toImage();
+        // Opposite corners are cut out; the other two stay square.
+        QCOMPARE(idle.pixelColor(177, 2).alpha(), 0);
+        QCOMPARE(idle.pixelColor(2, 41).alpha(), 0);
+        QCOMPARE(idle.pixelColor(3, 3).alpha(), 255);
+        QCOMPARE(idle.pixelColor(176, 40).alpha(), 255);
+        QEnterEvent enter(QPointF(80, 20), QPointF(104, 44), QPointF(104, 44));
+        QApplication::sendEvent(&button, &enter);
+        QTest::qWait(65);
+        const QColor moving = button.grab().toImage().pixelColor(90, 12);
+        QVERIFY(moving != idle.pixelColor(90, 12));
+        QTest::qWait(150);
+        const QImage hovered = button.grab().toImage();
+        QVERIFY(hovered.pixelColor(90, 12) != moving);
+        QSignalSpy clicks(&button, &QPushButton::clicked);
+        QTest::mousePress(&button, Qt::LeftButton, Qt::NoModifier, QPoint(80, 20));
+        QTest::qWait(130);
+        QVERIFY(button.grab().toImage().pixelColor(90, 12) != hovered.pixelColor(90, 12));
+        QTest::mouseRelease(&button, Qt::LeftButton, Qt::NoModifier, QPoint(80, 20));
+        QCOMPARE(clicks.count(), 1);
+        button.setEnabled(false);
+        QTest::mouseClick(&button, Qt::LeftButton);
+        QCOMPARE(clicks.count(), 1);
+        button.setEnabled(true);
+        button.setFocusPolicy(Qt::StrongFocus);
+        button.setFocus();
+        QTest::keyClick(&button, Qt::Key_Space);
+        QCOMPARE(clicks.count(), 2);
+        QToolButton menuButton(&host);
+        menuButton.setGeometry(220, 24, 110, 44);
+        menuButton.setText(QStringLiteral("Options"));
+        menuButton.setToolButtonStyle(Qt::ToolButtonTextOnly);
+        menuButton.setPopupMode(QToolButton::InstantPopup);
+        QMenu menu;
+        QAction* action = menu.addAction(QStringLiteral("Choose format"));
+        menuButton.setMenu(&menu);
+        menuButton.show();
+        QSignalSpy selected(action, &QAction::triggered);
+        QTimer::singleShot(80, &menu, [&] {
+            QTest::keyClick(&menu, Qt::Key_Down);
+            QTest::keyClick(&menu, Qt::Key_Return);
+        });
+        QTest::mouseClick(&menuButton, Qt::LeftButton);
+        QTRY_COMPARE_WITH_TIMEOUT(selected.count(), 1, 1000);
+    }
+
     void downloadImportAndNavigation()
     {
         QTemporaryDir temp;

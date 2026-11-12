@@ -3,7 +3,7 @@
 <img src="assets/media-suite.svg" width="96" height="96" alt="Media Suite icon">
 
 A Windows desktop app that brings **YT Downloader**, **LocalFlix**, and
-**MagnifyFactory** together in one window, using the shared LocalFlix dark theme.
+**MagnifyFactory** together in one window, with a shared geometric dark interface.
 Download media, organize your offline library, watch videos, and convert or edit
 files without switching applications. The interface and documentation are in English.
 
@@ -12,9 +12,9 @@ files without switching applications. The interface and documentation are in Eng
 Get the Windows x64 installer from the
 [latest release](https://github.com/victorhmrod/MediaSuite/releases/latest):
 
-- **MediaSuite-1.3.0-setup.exe** installs for your user account by default, adds a
+- **MediaSuite-1.4.0-setup.exe** installs for your user account by default, adds a
   Start Menu shortcut, and supports uninstalling from Windows Settings.
-- **MediaSuite-1.3.0-win64.zip** is portable: extract it and run `MediaSuite.exe`.
+- **MediaSuite-1.4.0-win64.zip** is portable: extract it and run `MediaSuite.exe`.
 - **SHA256SUMS.txt** contains checksums for both downloads.
 
 Python and Qt are bundled. FFmpeg and FFprobe are included in the published
@@ -22,6 +22,9 @@ package. Some websites need Node.js or Deno on PATH. PDF, document, archive, and
 3D tools may require additional programs; see [the guide](suite/README.md).
 
 ## Features
+
+- **Modern interface:** graphite surfaces, ice-blue accents, chamfered rectangular
+  buttons, and animated hover, focus, and press states throughout the app.
 
 - **Download videos:** YouTube, Google Drive, other yt-dlp-supported websites,
   direct media links, embedded videos, and non-DRM HLS/DASH streams. Preview

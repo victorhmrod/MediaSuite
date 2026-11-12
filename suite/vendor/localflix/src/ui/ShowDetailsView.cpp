@@ -248,7 +248,7 @@ void ShowDetailsView::updateHeader()
     for (const Episode& e : episodes)
         if (e.id == m_target.episodeId) targetEpisode = &e;
     const QString label = targetEpisode ? episodeLabel(*targetEpisode) : QString();
-    m_continue->setIcon(Theme::icon(m_target.allCompleted() ? Icon::Replay : Icon::Play, Qt::white, 22));
+    m_continue->setIcon(Theme::icon(m_target.allCompleted() ? Icon::Replay : Icon::Play, Colors::background, 22));
     switch (m_target.reason) {
     case ResumeReason::InProgress:
         m_continue->setText(QStringLiteral("  Continue watching"));

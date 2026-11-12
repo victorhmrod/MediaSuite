@@ -31,7 +31,7 @@ CollectionsView::CollectionsView(ApplicationController& app, LibraryActions* act
     sub->setProperty("muted", true);
 
     // ---- left: the collections
-    auto* newBtn = new QPushButton(Theme::icon(Icon::Add, Qt::white, 18), QStringLiteral("New collection"), this);
+    auto* newBtn = new QPushButton(Theme::icon(Icon::Add, Colors::background, 18), QStringLiteral("New collection"), this);
     newBtn->setProperty("variant", QStringLiteral("primary"));
     m_collections = new QListWidget(this);
     m_collections->setMinimumWidth(240);
@@ -47,7 +47,7 @@ CollectionsView::CollectionsView(ApplicationController& app, LibraryActions* act
     m_summary = new QLabel(this);
     m_summary->setProperty("muted", true);
     m_summary->setWordWrap(true);
-    m_play = new QPushButton(Theme::icon(Icon::Play, Qt::white, 20), QStringLiteral("Play collection"), this);
+    m_play = new QPushButton(Theme::icon(Icon::Play, Colors::background, 20), QStringLiteral("Play collection"), this);
     m_play->setProperty("variant", QStringLiteral("primary"));
     m_play->setMinimumHeight(38);
     m_addShow = new QPushButton(Theme::icon(Icon::Tv, Colors::text, 18), QStringLiteral("Add show…"), this);
