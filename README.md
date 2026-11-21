@@ -12,9 +12,9 @@ files without switching applications. The interface and documentation are in Eng
 Get the Windows x64 installer from the
 [latest release](https://github.com/victorhmrod/MediaSuite/releases/latest):
 
-- **MediaSuite-1.4.0-setup.exe** installs for your user account by default, adds a
+- **MediaSuite-1.4.1-setup.exe** installs for your user account by default, adds a
   Start Menu shortcut, and supports uninstalling from Windows Settings.
-- **MediaSuite-1.4.0-win64.zip** is portable: extract it and run `MediaSuite.exe`.
+- **MediaSuite-1.4.1-win64.zip** is portable: extract it and run `MediaSuite.exe`.
 - **SHA256SUMS.txt** contains checksums for both downloads.
 
 Python and Qt are bundled. FFmpeg and FFprobe are included in the published

@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QAbstractButton>
 #include <QEvent>
+#include <QFocusEvent>
 #include <QPushButton>
 #include <QToolButton>
 #include <QProxyStyle>
@@ -60,8 +61,18 @@ protected:
             m_inside = false;
             OnStateChangedCallback();
             break;
-        case QEvent::FocusIn:
+        case QEvent::FocusIn: {
+            // Only keyboard navigation draws a focus ring. Startup/window-activation focus must not
+            // make a button (typically the first nav button, Home) look selected.
+            const Qt::FocusReason reason = static_cast<QFocusEvent*>(event)->reason();
+            m_keyboardFocus = reason == Qt::TabFocusReason || reason == Qt::BacktabFocusReason || reason == Qt::ShortcutFocusReason;
+            OnStateChangedCallback();
+            break;
+        }
         case QEvent::FocusOut:
+            m_keyboardFocus = false;
+            OnStateChangedCallback();
+            break;
         case QEvent::EnabledChange:
             OnStateChangedCallback();
             break;
@@ -79,7 +90,7 @@ private:
     {
         m_hover.stop();
         m_hover.setStartValue(m_hover.currentValue().toReal());
-        m_hover.setEndValue(m_button->isEnabled() && (m_inside || m_button->hasFocus()) ? 1.0 : 0.0);
+        m_hover.setEndValue(m_button->isEnabled() && (m_inside || m_keyboardFocus) ? 1.0 : 0.0);
         m_hover.start();
         m_press.stop();
         m_press.setStartValue(m_press.currentValue().toReal());
@@ -140,7 +151,7 @@ private:
         shape.lineTo(r.left() + cut, r.bottom());
         shape.lineTo(r.left(), r.bottom() - cut);
         shape.closeSubpath();
-        painter.setPen(QPen(border, m_button->hasFocus() && enabled ? 2.0 : 1.0));
+        painter.setPen(QPen(border, m_keyboardFocus && enabled ? 2.0 : 1.0));
         painter.setBrush(fill);
         painter.drawPath(shape);
         if (nav && checked) {
@@ -198,6 +209,7 @@ private:
     QVariantAnimation m_hover;
     QVariantAnimation m_press;
     bool m_inside = false;
+    bool m_keyboardFocus = false;
 };
 
 class SuiteStyle final : public QProxyStyle {

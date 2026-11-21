@@ -140,11 +140,11 @@ installation, application startup, and uninstallation in an isolated directory.
 It refuses to run the installation test over an existing Media Suite install.
 `MEDIA_SUITE_ISCC` selects a custom Inno Setup compiler.
 
-Outputs for version 1.4.0:
+Outputs for version 1.4.1:
 
-- `dist/MediaSuite-1.4.0/MediaSuite.exe`
-- `dist/MediaSuite-1.4.0-win64.zip`
-- `dist/MediaSuite-1.4.0-setup.exe`
+- `dist/MediaSuite-1.4.1/MediaSuite.exe`
+- `dist/MediaSuite-1.4.1-win64.zip`
+- `dist/MediaSuite-1.4.1-setup.exe`
 - `dist/SHA256SUMS.txt`
 
 `package-suite.ps1` creates only the application folder and portable ZIP.
