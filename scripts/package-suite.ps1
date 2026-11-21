@@ -24,7 +24,11 @@ foreach ($tool in @('ffmpeg.exe', 'ffprobe.exe')) {
     $command = Get-Command $tool -ErrorAction SilentlyContinue
     if (-not $command) { continue }
     $toolFile = Get-Item -LiteralPath $command.Source
-    if ($toolFile.LinkType) { $toolFile = $toolFile.ResolveLinkTarget($true) }
+    if ($toolFile.LinkType) {
+        # ResolveLinkTarget needs PowerShell 7; Windows PowerShell 5.1 exposes the target path instead.
+        if ($toolFile.PSObject.Methods['ResolveLinkTarget']) { $toolFile = $toolFile.ResolveLinkTarget($true) }
+        else { $toolFile = Get-Item -LiteralPath @($toolFile.Target)[0] }
+    }
     Copy-Item -LiteralPath $toolFile.FullName -Destination "$output\$tool" -Force
     $toolLicense = Join-Path $toolFile.Directory.Parent.FullName 'LICENSE'
     if (Test-Path -LiteralPath $toolLicense) { Copy-Item -LiteralPath $toolLicense -Destination "$output\LICENSE-FFmpeg.txt" -Force }
