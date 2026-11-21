@@ -20,7 +20,7 @@
 class UpdateTests : public QObject {
     Q_OBJECT
 private slots:
-    void privateDiscoveryAndVerifiedDownload()
+    void publicAndPrivateDiscoveryWithVerifiedDownload()
     {
         QSettings().setValue(QStringLiteral("updates/checkAtStartup"), false);
         QTcpServer server;
@@ -36,6 +36,7 @@ private slots:
         bool unauthorized = false;
         int requests = 0;
         bool authorized = true;
+        int authenticated = 0;
         connect(&server, &QTcpServer::newConnection, this, [&] {
             auto* socket = server.nextPendingConnection();
             connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
@@ -43,7 +44,10 @@ private slots:
                 socket->setProperty("request", request);
                 if (!request.contains("\r\n\r\n")) return;
                 ++requests;
-                authorized = authorized && request.toLower().contains("authorization: bearer test-only-token");
+                if (request.toLower().contains("authorization:")) {
+                    ++authenticated;
+                    authorized = authorized && request.toLower().contains("authorization: bearer test-only-token");
+                }
                 const QByteArray path = request.split(' ').value(1);
                 if (unauthorized) {
                     socket->write("HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
@@ -74,9 +78,14 @@ private slots:
         auto* install = panel.findChild<QPushButton*>(QStringLiteral("installUpdate"));
         QSignalSpy available(&panel, &UpdatePanel::updateAvailable);
         QSignalSpy installRequested(&panel, &UpdatePanel::installRequested);
+        // A public repository needs no token: the check works and sends no Authorization header.
+        QVERIFY(token->placeholderText().contains(QStringLiteral("optional")));
+        release[QStringLiteral("tag_name")] = QStringLiteral("v") + QCoreApplication::applicationVersion();
         check->click();
-        QVERIFY(status->text().contains(QStringLiteral("Save a GitHub token")));
-        QCOMPARE(requests, 0);
+        QTRY_VERIFY(check->isEnabled());
+        QVERIFY(status->text().contains(QStringLiteral("up to date")));
+        QCOMPARE(requests, 1);
+        QCOMPARE(authenticated, 0);
         token->setText(QStringLiteral("test-only-token"));
         save->click();
         QVERIFY(token->text().isEmpty());
@@ -104,6 +113,7 @@ private slots:
         download->click();
         QTRY_VERIFY_WITH_TIMEOUT(install->isVisible(), 5000);
         QVERIFY(status->text().contains(QStringLiteral("SHA-256 verified")));
+        QVERIFY(authenticated > 0);
         QVERIFY(authorized);
         install->click();
         QCOMPARE(installRequested.count(), 1);
@@ -172,8 +182,11 @@ private slots:
         QSettings().setValue(QStringLiteral("updates/checkAtStartup"), false);
         token->clear();
         save->click();
+        const int authenticatedBefore = authenticated;
         check->click();
-        QVERIFY(status->text().contains(QStringLiteral("Save a GitHub token")));
+        QTRY_VERIFY(check->isEnabled());
+        QVERIFY(status->text().contains(QStringLiteral("is available")));
+        QCOMPARE(authenticated, authenticatedBefore);
         QFile::remove(fileName);
     }
 };

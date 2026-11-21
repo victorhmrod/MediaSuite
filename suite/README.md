@@ -46,11 +46,13 @@ the same jobs appear in **Convert and edit**. Retrying a failed conversion reuse
 the downloaded file. Originals and existing output files are preserved. Automatic
 library import adds successful video outputs, not audio or still images.
 
-### Application updates (private repository)
+### Application updates
 
-Open **Settings → Application updates** and save a fine-grained GitHub token
-with **Contents: read** access to `victorhmrod/MediaSuite`. The application stores
-the token in Windows Credential Manager, not in its settings files or logs.
+The repository is public, so **Settings → Application updates** works without
+any configuration. If the repository is ever made private, save a fine-grained
+GitHub token with **Contents: read** access to `victorhmrod/MediaSuite` in the
+same panel. The application stores the token in Windows Credential Manager, not
+in its settings files or logs, and sends it only to the GitHub API host.
 See [GitHub's release API permissions](https://docs.github.com/en/rest/releases/releases#get-the-latest-release).
 Leaving the token field blank and choosing **Save token** removes it.
 
@@ -58,7 +60,7 @@ Leaving the token field blank and choosing **Save token** removes it.
 enabled at startup and can be disabled with the checkbox. A newer release
 produces a notification; **Download update** fetches its Windows installer.
 The size and SHA-256 digest must match GitHub's release asset metadata. The
-application rechecks the file before installation and never forwards the token
+application rechecks the file before installation and never forwards a token
 to the signed asset CDN URL.
 
 Select **Install update** when ready, then confirm closing Media Suite. Active
@@ -140,11 +142,11 @@ installation, application startup, and uninstallation in an isolated directory.
 It refuses to run the installation test over an existing Media Suite install.
 `MEDIA_SUITE_ISCC` selects a custom Inno Setup compiler.
 
-Outputs for version 1.4.1:
+Outputs for version 1.4.2:
 
-- `dist/MediaSuite-1.4.1/MediaSuite.exe`
-- `dist/MediaSuite-1.4.1-win64.zip`
-- `dist/MediaSuite-1.4.1-setup.exe`
+- `dist/MediaSuite-1.4.2/MediaSuite.exe`
+- `dist/MediaSuite-1.4.2-win64.zip`
+- `dist/MediaSuite-1.4.2-setup.exe`
 - `dist/SHA256SUMS.txt`
 
 `package-suite.ps1` creates only the application folder and portable ZIP.

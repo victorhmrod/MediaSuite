@@ -1,6 +1,6 @@
 ; Media Suite Windows installer. Build with scripts/make-suite-release.ps1.
 #ifndef AppVersion
-  #define AppVersion "1.4.1"
+  #define AppVersion "1.4.2"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\dist\MediaSuite-" + AppVersion

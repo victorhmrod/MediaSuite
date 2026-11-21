@@ -25,7 +25,7 @@ UpdatePanel::UpdatePanel(QWidget* parent, QUrl releaseApi, QString credentialTar
 {
     setObjectName(QStringLiteral("applicationUpdates"));
     auto* layout = new QVBoxLayout(this);
-    auto* description = new QLabel(QStringLiteral("Private GitHub repository: use a fine-grained token with Contents: read access to MediaSuite. The token is stored in Windows Credential Manager."), this);
+    auto* description = new QLabel(QStringLiteral("Updates are checked from the public MediaSuite releases on GitHub; no token is needed. Only if the repository is private, optionally save a fine-grained token with Contents: read access. It is stored in Windows Credential Manager."), this);
     description->setWordWrap(true);
     description->setProperty("muted", true);
     layout->addWidget(description);
@@ -33,7 +33,7 @@ UpdatePanel::UpdatePanel(QWidget* parent, QUrl releaseApi, QString credentialTar
     m_token = new QLineEdit(this);
     m_token->setObjectName(QStringLiteral("updateToken"));
     m_token->setEchoMode(QLineEdit::Password);
-    m_token->setPlaceholderText(token().isEmpty() ? QStringLiteral("GitHub token") : QStringLiteral("Token saved securely; leave blank and save to remove"));
+    m_token->setPlaceholderText(token().isEmpty() ? QStringLiteral("GitHub token (optional)") : QStringLiteral("Token saved securely; leave blank and save to remove"));
     m_save = new QPushButton(QStringLiteral("Save token"), this);
     m_save->setObjectName(QStringLiteral("saveUpdateToken"));
     credentials->addWidget(m_token, 1);
@@ -120,8 +120,8 @@ void UpdatePanel::OnSaveTokenCallback()
         }
     }
     m_token->clear();
-    m_token->setPlaceholderText(value.isEmpty() ? QStringLiteral("GitHub token") : QStringLiteral("Token saved securely; leave blank and save to remove"));
-    m_status->setText(value.isEmpty() ? QStringLiteral("Token removed.") : QStringLiteral("Token saved securely. You can now check for updates."));
+    m_token->setPlaceholderText(value.isEmpty() ? QStringLiteral("GitHub token (optional)") : QStringLiteral("Token saved securely; leave blank and save to remove"));
+    m_status->setText(value.isEmpty() ? QStringLiteral("Token removed. Updates are checked without a token.") : QStringLiteral("Token saved securely."));
     m_installerUrl.clear();
     m_download->hide();
     m_install->hide();
@@ -136,10 +136,6 @@ void UpdatePanel::setBusy(bool busy)
 void UpdatePanel::OnCheckCallback()
 {
     if (m_reply) return;
-    if (token().isEmpty()) {
-        m_status->setText(QStringLiteral("Save a GitHub token with access to the private repository to discover updates."));
-        return;
-    }
     m_download->hide();
     m_install->hide();
     m_installerUrl.clear();
@@ -148,7 +144,7 @@ void UpdatePanel::OnCheckCallback()
     QNetworkRequest request(m_apiUrl);
     request.setRawHeader("User-Agent", "MediaSuite-Updater");
     request.setRawHeader("Accept", "application/vnd.github+json");
-    request.setRawHeader("Authorization", "Bearer " + token());
+    if (const QByteArray bearer = token(); !bearer.isEmpty()) request.setRawHeader("Authorization", "Bearer " + bearer);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(30000);
     m_reply = m_network.get(request);
@@ -158,7 +154,7 @@ void UpdatePanel::OnCheckCallback()
         reply->deleteLater();
         setBusy(false);
         if (reply->error() != QNetworkReply::NoError) {
-            m_status->setText(QStringLiteral("Update check failed (HTTP %1). Check the token, repository permission, and connection.").arg(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()));
+            m_status->setText(QStringLiteral("Update check failed (HTTP %1). Check your connection and, if you saved a token, its repository permission.").arg(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()));
             return;
         }
         const auto release = QJsonDocument::fromJson(reply->readAll()).object();
@@ -219,7 +215,9 @@ void UpdatePanel::startInstallerDownload(const QUrl& url)
     QNetworkRequest request(url);
     request.setRawHeader("User-Agent", "MediaSuite-Updater");
     request.setRawHeader("Accept", "application/octet-stream");
-    if (url.host() == m_apiUrl.host() && url.port() == m_apiUrl.port() && url.scheme() == m_apiUrl.scheme()) request.setRawHeader("Authorization", "Bearer " + token());
+    if (url.host() == m_apiUrl.host() && url.port() == m_apiUrl.port() && url.scheme() == m_apiUrl.scheme()) {
+        if (const QByteArray bearer = token(); !bearer.isEmpty()) request.setRawHeader("Authorization", "Bearer " + bearer);
+    }
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(60000);
     m_reply = m_network.get(request);

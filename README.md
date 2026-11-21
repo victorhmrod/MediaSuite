@@ -12,9 +12,9 @@ files without switching applications. The interface and documentation are in Eng
 Get the Windows x64 installer from the
 [latest release](https://github.com/victorhmrod/MediaSuite/releases/latest):
 
-- **MediaSuite-1.4.1-setup.exe** installs for your user account by default, adds a
+- **MediaSuite-1.4.2-setup.exe** installs for your user account by default, adds a
   Start Menu shortcut, and supports uninstalling from Windows Settings.
-- **MediaSuite-1.4.1-win64.zip** is portable: extract it and run `MediaSuite.exe`.
+- **MediaSuite-1.4.2-win64.zip** is portable: extract it and run `MediaSuite.exe`.
 - **SHA256SUMS.txt** contains checksums for both downloads.
 
 Python and Qt are bundled. FFmpeg and FFprobe are included in the published
@@ -43,9 +43,10 @@ package. Some websites need Node.js or Deno on PATH. PDF, document, archive, and
 - **Download and convert:** choose a video, audio, or still-image output
   on the download page. Conversion starts after the download, uses the shared
   converter queue, and reports progress on the download card. Originals are kept.
-- **Update discovery:** automatically check private GitHub releases at startup,
-  download a SHA-256-verified installer, and choose when to install. Configure
-  a read-only GitHub token in Settings; Windows Credential Manager stores it.
+- **Update discovery:** automatically check GitHub releases at startup, with no
+  token needed for this public repository, download a SHA-256-verified installer,
+  and choose when to install. A read-only token in Settings is optional and only
+  needed if the repository becomes private; Windows Credential Manager stores it.
 
 ![Downloads](docs/screenshots/download.png)
 
